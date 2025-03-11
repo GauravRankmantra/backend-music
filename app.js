@@ -11,9 +11,9 @@ app.use(express.static('public'));
 const allowedDomains = [
   'http://localhost:5173',
   'http://localhost:3000',
-
+  'https://funny-shortbread-aa9177.netlify.app'
 ];
- 
+
 // Middleware setup
 app.use(
   cors({
@@ -33,10 +33,9 @@ app.use('/server/health', (req, res) => {
   res.send({ success: true, message: 'Server is running..' });
 });
 
-
 //import routes
-const apiRoutes=require("./src/routes/index.js")
+const apiRoutes = require('./src/routes/index.js');
 
-app.use("/",apiRoutes);
+app.use('/', apiRoutes);
 
 module.exports = { app };
