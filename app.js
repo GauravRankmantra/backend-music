@@ -8,11 +8,28 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true })); //data which is coming from url
 app.use(express.static('public'));
-app.use(cors({
-    origin: 'http://localhost:5173/', 
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true, 
-  }));
+const allowedDomains = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+
+];
+ 
+// Middleware setup
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedDomains.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: 'GET, POST, PUT, DELETE,PATCH',
+    allowedHeaders: 'Content-Type, Authorization',
+    credentials: true // Allow credentials (cookies, etc.)
+  })
+);
+  
 
 
 //import routes
