@@ -29,7 +29,9 @@ app.use(
     credentials: true // Allow credentials (cookies, etc.)
   })
 );
-  
+app.use('/server/health', (req, res) => {
+  res.send({ success: true, message: 'Server is running..' });
+});
 
 
 //import routes
