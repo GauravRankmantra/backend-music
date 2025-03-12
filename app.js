@@ -11,8 +11,8 @@ app.use(express.static('public'));
 const allowedDomains = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://funny-shortbread-aa9177.netlify.app',
-  'https://cosmic-narwhal-6b8ed5.netlify.app/'
+  'https://cosmic-narwhal-6b8ed5.netlify.app',
+  'https://funny-shortbread-aa9177.netlify.app'
 ];
 
 // Middleware setup
