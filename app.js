@@ -10,6 +10,7 @@ app.use(express.urlencoded({ extended: true })); //data which is coming from url
 app.use(express.static('public'));
 const allowedDomains = [
   'http://localhost:5173',
+  'http://localhost:5175',
   'http://localhost:3000',
   'https://cosmic-narwhal-6b8ed5.netlify.app',
   'https://funny-shortbread-aa9177.netlify.app'
