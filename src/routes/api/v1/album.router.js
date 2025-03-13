@@ -21,6 +21,7 @@ router.put(
   upload.single('coverImage'),
   albumController.updateAlbum
 );
+router.get('/artistAlbums:id',auth,albumController.getArtistAlbums)
 
 router.delete('/:id', auth, isAdminOrOwner, albumController.deleteAlbum);
 

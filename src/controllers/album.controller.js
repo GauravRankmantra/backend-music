@@ -8,30 +8,29 @@ const { uploadFile } = require('../services/cloudinary.js');
 
 module.exports.getFeaturedAlbums = asyncHandler(async (req, res) => {
   try {
-
-      const featuredAlbums = await Album.aggregate([
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'artist',
-            foreignField: '_id',
-            as: 'artist'
-          }
-        },
-  
-        {
-          $lookup: {
-            from: 'songs',
-            localField: 'songs',
-            foreignField: '_id',
-            as: 'songs'
-          }
-        },
-  
-        {
-          $unwind: '$artist'
+    const featuredAlbums = await Album.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'artist',
+          foreignField: '_id',
+          as: 'artist'
         }
-      ]);
+      },
+
+      {
+        $lookup: {
+          from: 'songs',
+          localField: 'songs',
+          foreignField: '_id',
+          as: 'songs'
+        }
+      },
+
+      {
+        $unwind: '$artist'
+      }
+    ]);
 
     return res.status(200).json(featuredAlbums);
   } catch (error) {
@@ -107,11 +106,11 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
         $project: {
           _id: 1,
           title: 1,
-          company:1,
-          releaseDate:1,
+          company: 1,
+          releaseDate: 1,
           coverImage: 1,
-          artistDetails:1, 
-          genreDetails:1,
+          artistDetails: 1,
+          genreDetails: 1,
           songs: 1,
           comments: 1,
           totalSongs: 1,
@@ -127,7 +126,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
     }
 
     // Return the album details (first item in the array)
-    return res.status(200).json({success:true, data: detail[0] });
+    return res.status(200).json({ success: true, data: detail[0] });
   } catch (error) {
     return res.status(500).json({ message: 'failed', error });
   }
@@ -236,7 +235,11 @@ module.exports.addComment = asyncHandler(async (req, res) => {
 });
 
 module.exports.addAlbums = asyncHandler(async (req, res) => {
-  const { title, artist, genre, releaseDate, company } = req.body;
+  const { title, artist, genre, company } = req.body;
+  if (!title || !artist || !genre || !company)
+    return res
+      .status(400)
+      .json({ success: false, message: 'All fields are require ' });
   const file = req.file;
 
   let coverImageUrl = '';
@@ -247,7 +250,6 @@ module.exports.addAlbums = asyncHandler(async (req, res) => {
       const coverImageFile = await uploadFile(coverImagePath); // Upload to Cloudinary
       coverImageUrl = coverImageFile ? coverImageFile.secure_url : ''; // Get Cloudinary URL
     } catch (error) {
-      console.error('Error uploading cover image:', error);
       return res
         .status(500)
         .json({ message: 'Error uploading cover image', error });
@@ -269,7 +271,7 @@ module.exports.addAlbums = asyncHandler(async (req, res) => {
       coverImage,
       genre,
       company,
-      releaseDate: releaseDate || Date.now()
+      releaseDate: Date.now()
     });
 
     // Save the album to the database
@@ -319,10 +321,10 @@ module.exports.updateAlbum = asyncHandler(async (req, res) => {
       });
     }
 
-    if (title) album.title = title;
-    if (company) album.company = company;
-    if (file) album.coverImage = coverImageUrl;
-    if (genre) album.genre = genre;
+    if (title && title != '') album.title = title;
+    if (company && company != '') album.company = company;
+    if (file && coverImageUrl != '') album.coverImage = coverImageUrl;
+    if (genre && genre != '') album.genre = genre;
     if (typeof isPublished !== 'undefined') album.isPublished = isPublished;
     if (typeof isFeatured !== 'undefined') album.isFeatured = isFeatured;
     if (typeof isTranding !== 'undefined') album.isTranding = isTranding;
@@ -388,6 +390,8 @@ module.exports.updateAlbum = asyncHandler(async (req, res) => {
 
 module.exports.deleteAlbum = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  if (!id)
+    return res.status(404).json({ success: false, message: 'No id provided' });
   const album = await Album.findByIdAndDelete(id);
   if (!album)
     return res
@@ -396,4 +400,34 @@ module.exports.deleteAlbum = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json({ success: true, message: 'Album deleted Successfully' });
+});
+
+module.exports.getArtistAlbums = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id)
+    return res
+      .status(404)
+      .json({ success: false, message: 'No artist id provided' });
+  const album = await Album.aggregate([
+    { $match: { _id: id } },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'artist',
+        foreignField: '_id',
+        as: 'Artist'
+      }
+    },
+    {
+      $lookup: {
+        from: 'songs',
+        localField: 'song',
+        foreignField: '_id',
+        as:'Songs'
+      }
+    },
+    {
+
+    }
+  ]);
 });
