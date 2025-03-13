@@ -46,7 +46,7 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       low: lowUrl,
       high: highUrl
     },
-    album: body.album || '',
+    album: body.album ? body.album : null,
     coverImage: coverImageUrl,
     genre: body.genre,
     plays: 0, // Optional: Can be dynamically set or start from 0
