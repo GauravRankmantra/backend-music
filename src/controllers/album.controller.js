@@ -431,3 +431,19 @@ module.exports.getArtistAlbums = asyncHandler(async (req, res) => {
     }
   ]);
 });
+
+
+module.exports.getAlbumSearch = asyncHandler(async (req, res) => {
+  const { search = "" } = req.query; // Get the search query from the frontend (default to an empty string)
+
+  // Use a case-insensitive regex to match artist names that contain the search query
+  const allAlbums = await Album.find({
+    
+    title: { $regex: search, $options: "i" }, // Case-insensitive match
+  });
+
+  if (!allAlbums.length)
+    return res.status(404).json({ success: false, message: "No Album Found" });
+
+  return res.status(200).json({ success: true, data: allAlbums });
+});

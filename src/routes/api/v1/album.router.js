@@ -6,6 +6,7 @@ const { auth } = require('../../../middlelwares/auth.middleware.js');
 const isAdminOrOwner = require('../../../middlelwares/isAdminOrOwner.middleware.js');
 
 router.get('/', albumController.getAllAlbums);
+router.get('/album/search',albumController.getAlbumSearch);
 
 router.get('/featureAlbums', albumController.getFeaturedAlbums);
 

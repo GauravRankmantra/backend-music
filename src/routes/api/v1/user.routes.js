@@ -27,6 +27,7 @@ router.put(
   userController.updateUser
 );
 router.get('/artist', userController.getAllArtist);
+router.get('/artist/search',userController.getArtistSearch);
 router.patch('/forgetPass', auth, userController.forgetPassword);
 router.patch('/verifyOtp', auth, userController.verifyOtp);
 router.get('/featuredArtists', userController.featuredArtists);

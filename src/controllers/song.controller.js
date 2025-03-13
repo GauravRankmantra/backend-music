@@ -38,12 +38,15 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
   const newSong = new Song({
     title: body.title,
     artist: body.artist,
-    duration: lowAudioUrl.duration / 60,
+    duration:
+      lowAudioUrl.duration >= 60
+        ? lowAudioUrl.duration / 60
+        : lowAudioUrl.duration,
     audioUrls: {
       low: lowUrl,
       high: highUrl
     },
-    album: body.album,
+    album: body.album || '',
     coverImage: coverImageUrl,
     genre: body.genre,
     plays: 0, // Optional: Can be dynamically set or start from 0

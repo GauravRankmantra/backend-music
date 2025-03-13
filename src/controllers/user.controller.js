@@ -268,3 +268,18 @@ module.exports.getAllArtist = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'No Artist Found' });
   return res.status(200).json({ success: true, data: allArtist });
 });
+
+module.exports.getArtistSearch = asyncHandler(async (req, res) => {
+  const { search = "" } = req.query; // Get the search query from the frontend (default to an empty string)
+
+  // Use a case-insensitive regex to match artist names that contain the search query
+  const allAlbum = await User.find({
+    role: "artist",
+    fullName: { $regex: search, $options: "i" }, // Case-insensitive match
+  });
+
+  if (!allAlbum.length)
+    return res.status(404).json({ success: false, message: "No Artist Found" });
+
+  return res.status(200).json({ success: true, data: allAlbum });
+});
