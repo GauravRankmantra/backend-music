@@ -84,21 +84,20 @@ module.exports.updateUser = asyncHandler(async (req, res) => {
   const id = req.params;
   const { fullName, email, password } = req.params;
   const file = req.file;
-    let coverImageUrl = '';
-  
-    if (file) {
-      const coverImagePath = file.path; // Get the cover image path from Multer
-      try {
-        const coverImageFile = await uploadFile(coverImagePath); // Upload to Cloudinary
-        coverImageUrl = coverImageFile ? coverImageFile.secure_url : ''; // Get Cloudinary URL
-      } catch (error) {
-        console.error('Error uploading cover image:', error);
-        return res
-          .status(500)
-          .json({ message: 'Error uploading cover image', error });
-      }
+  let coverImageUrl = '';
+
+  if (file) {
+    const coverImagePath = file.path; // Get the cover image path from Multer
+    try {
+      const coverImageFile = await uploadFile(coverImagePath); // Upload to Cloudinary
+      coverImageUrl = coverImageFile ? coverImageFile.secure_url : ''; // Get Cloudinary URL
+    } catch (error) {
+      console.error('Error uploading cover image:', error);
+      return res
+        .status(500)
+        .json({ message: 'Error uploading cover image', error });
     }
-  
+  }
 
   const user = await User.findById(id);
   if (!user)
@@ -106,7 +105,7 @@ module.exports.updateUser = asyncHandler(async (req, res) => {
   if (fullName) user.fullName = fullName;
   if (email) user.email = email;
   if (password) user.password = password;
-  if(coverImageUrl!='') user.coverImage=coverImageUrl;
+  if (coverImageUrl != '') user.coverImage = coverImageUrl;
   await user.save();
   return res
     .status(200)
@@ -223,19 +222,21 @@ module.exports.updateUser2 = asyncHandler(async (req, res) => {
 
 module.exports.getAllUsers = asyncHandler(async (req, res) => {
   try {
-    const allUsers = await User.find(
-      {},
-      'fullName role isFeatured plan coverImage createdAt updatedAt email'
-    );
+    const { page = 1, limit = 10 } = req.query; // default page 1, limit 10
 
-    if (allUsers.length === 0) {
-      return res.status(404).json({ message: 'No users found' });
-    }
+    const users = await User.find() // Replace with your actual DB query
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
 
-    return res.status(200).json({ message: 'success', allUsers });
+    const totalUsers = await User.countDocuments(); // Total number of users
+    res.json({
+      totalUsers,
+      totalPages: Math.ceil(totalUsers / limit),
+      currentPage: page,
+      users
+    });
   } catch (error) {
-    console.error('Error fetching users:', error); // Log the error
-    return res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: 'Error fetching users', error });
   }
 });
 
@@ -253,13 +254,11 @@ module.exports.deleteUser = asyncHandler(async (req, res) => {
       .status(200)
       .json({ success: true, message: 'User deleted Successfully' });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: 'Internal server error',
-        error: error.message
-      });
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
   }
 });
 
