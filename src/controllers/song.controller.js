@@ -170,7 +170,7 @@ module.exports.deleteSong = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const song = await Song.findById(id);
-  if (user.role == 'admin' || user._id.equals(song.artist)) {
+  //if (user.role == 'admin' || user._id.equals(song.artist)) {
     const del = await Song.findByIdAndDelete(id);
     if (!del) {
       return res
@@ -180,7 +180,7 @@ module.exports.deleteSong = asyncHandler(async (req, res) => {
     return res
       .status(200)
       .json({ success: true, message: 'Song deleted successfully' });
-  }
+  //}
   return res
     .status(401)
     .json({ success: false, message: 'Unauthorize access' });

@@ -30,6 +30,6 @@ router.put(
   auth,
   songController.updateSong
 );
-router.delete('/:id', auth, songController.deleteSong);
+router.delete('/:id', songController.deleteSong);
 
 module.exports = router;
