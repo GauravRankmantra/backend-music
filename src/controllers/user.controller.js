@@ -6,6 +6,9 @@ const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
+
+
+
 module.exports.registerUser = asyncHandler(async (req, res, next) => {
   const { body, files } = req;
   validateUser(req, res);
@@ -46,6 +49,45 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
     });
   } catch (error) {
     return res.status(500).json({ message: 'internal server error ', error });
+  }
+});
+module.exports.newUsers = asyncHandler(async (req, res, next) => {
+  const today = new Date();
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(today.getDate() - 7);
+
+  try {
+    // Query the User model for users created within the last 7 days
+    const users = await User.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: sevenDaysAgo, // Find users created after 7 days ago
+            $lte: today // Until today
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } // Group by date (yyyy-mm-dd)
+          },
+          count: { $sum: 1 } // Count the number of users created on each day
+        }
+      },
+      { $sort: { _id: 1 } } // Sort by date in ascending order
+    ]);
+
+    // Send data to the frontend
+    res.status(200).json({
+      success: true,
+      data: users.map((user) => ({
+        day: user._id,
+        newUsers: user.count
+      }))
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error fetching user data', error });
   }
 });
 
@@ -270,16 +312,16 @@ module.exports.getAllArtist = asyncHandler(async (req, res) => {
 });
 
 module.exports.getArtistSearch = asyncHandler(async (req, res) => {
-  const { search = "" } = req.query; // Get the search query from the frontend (default to an empty string)
+  const { search = '' } = req.query; // Get the search query from the frontend (default to an empty string)
 
   // Use a case-insensitive regex to match artist names that contain the search query
   const allAlbum = await User.find({
-    role: "artist",
-    fullName: { $regex: search, $options: "i" }, // Case-insensitive match
+    role: 'artist',
+    fullName: { $regex: search, $options: 'i' } // Case-insensitive match
   });
 
   if (!allAlbum.length)
-    return res.status(404).json({ success: false, message: "No Artist Found" });
+    return res.status(404).json({ success: false, message: 'No Artist Found' });
 
   return res.status(200).json({ success: true, data: allAlbum });
 });

@@ -32,7 +32,11 @@ module.exports.getFeaturedAlbums = asyncHandler(async (req, res) => {
       }
     ]);
 
-    return res.status(200).json(featuredAlbums);
+    res.status(200).json({
+      success: true,
+      message: 'Featured album retrieved successfully.',
+      data: featuredAlbums
+    });
   } catch (error) {
     return res
       .status(500)

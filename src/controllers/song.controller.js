@@ -66,35 +66,35 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
 
 module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
   try {
-    // Fetch the top 15 songs sorted by the 'plays' field in descending order
+   
     const top15 = await Song.aggregate([
       {
-        $sort: { plays: -1 } // Sort by plays in descending order
+        $sort: { plays: -1 } 
       },
       {
         $limit: 15 // Limit to top 15 songs
       },
       {
         $lookup: {
-          from: 'users', // Assuming 'users' collection stores artist information
-          localField: 'artist', // Song's artist field
-          foreignField: '_id', // User's _id field
-          as: 'artistInfo' // Store artist data as artistInfo
+          from: 'users', 
+          localField: 'artist', 
+          foreignField: '_id', 
+          as: 'artistInfo' 
         }
       },
       {
-        $unwind: '$artistInfo' // Unwind to access individual artist data
+        $unwind: '$artistInfo' 
       },
       {
         $lookup: {
-          from: 'genres', // Collection to join with (genres collection)
-          localField: 'genre', // Song's genre field
-          foreignField: '_id', // Genre's _id field
-          as: 'genreInfo' // Store genre data as genreInfo
+          from: 'genres', 
+          localField: 'genre', 
+          foreignField: '_id', 
+          as: 'genreInfo' 
         }
       },
       {
-        $unwind: '$genreInfo' // Unwind to access individual genre data
+        $unwind: '$genreInfo'
       },
       {
         $project: {
@@ -105,12 +105,12 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
           isPublished: 1,
           createdAt: 1,
           updatedAt: 1,
-          // Now we are accessing the fullName from artistInfo and name from genreInfo
-          artist: '$artistInfo.fullName', // Extract artist's fullName from artistInfo
-          genre: '$genreInfo.name', // Extract genre's name from genreInfo
+        
+          artist: '$artistInfo.fullName', 
+          genre: '$genreInfo.name', 
           rank: {
             $cond: {
-              if: { $eq: [{ $type: '$rank' }, 'missing'] }, // If no rank exists, default to 0
+              if: { $eq: [{ $type: '$rank' }, 'missing'] }, 
               then: 0,
               else: '$rank'
             }
@@ -226,3 +226,16 @@ module.exports.updateSong = asyncHandler(async (req, res) => {
     .status(401)
     .json({ success: false, message: 'Unauthorize access' });
 });
+
+// module.exports.getSongDetail = asyncHandler(async(req,res)=>{
+//   const id=req.params;
+//   const Song = await Song.aggregate([
+//     {
+//       $match :{_id:id}
+//     },{
+//       $lookup:{
+//         from
+//       }
+//     }
+//   ])
+// })
