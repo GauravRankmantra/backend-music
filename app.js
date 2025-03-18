@@ -15,7 +15,8 @@ const allowedDomains = [
   'https://cosmic-narwhal-6b8ed5.netlify.app',
   'https://funny-shortbread-aa9177.netlify.app',
   'https://adminpanelmusic.netlify.app',
-  'https://fantastic-sfogliatella-b432ab.netlify.app'
+  'https://fantastic-sfogliatella-b432ab.netlify.app',
+  'https://odgmusic.netlify.app'
 ];
 
 // Middleware setup
