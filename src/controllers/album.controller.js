@@ -43,6 +43,46 @@ module.exports.getFeaturedAlbums = asyncHandler(async (req, res) => {
       .json({ message: 'Error while fetching the albums', error });
   }
 });
+module.exports.getTrendingAlbums = asyncHandler(async (req, res) => {
+  try {
+    const featuredAlbums = await Album.aggregate([
+      {
+        $match: { isTranding: true }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'artist',
+          foreignField: '_id',
+          as: 'artist'
+        }
+      },
+
+      {
+        $lookup: {
+          from: 'songs',
+          localField: 'songs',
+          foreignField: '_id',
+          as: 'songs'
+        }
+      },
+
+      {
+        $unwind: '$artist'
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: 'Featured album retrieved successfully.',
+      data: featuredAlbums
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: 'Error while fetching the albums', error });
+  }
+});
 
 module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -427,27 +467,23 @@ module.exports.getArtistAlbums = asyncHandler(async (req, res) => {
         from: 'songs',
         localField: 'song',
         foreignField: '_id',
-        as:'Songs'
+        as: 'Songs'
       }
     },
-    {
-
-    }
+    {}
   ]);
 });
 
-
 module.exports.getAlbumSearch = asyncHandler(async (req, res) => {
-  const { search = "" } = req.query; // Get the search query from the frontend (default to an empty string)
+  const { search = '' } = req.query; // Get the search query from the frontend (default to an empty string)
 
   // Use a case-insensitive regex to match artist names that contain the search query
   const allAlbums = await Album.find({
-    
-    title: { $regex: search, $options: "i" }, // Case-insensitive match
+    title: { $regex: search, $options: 'i' } // Case-insensitive match
   });
 
   if (!allAlbums.length)
-    return res.status(404).json({ success: false, message: "No Album Found" });
+    return res.status(404).json({ success: false, message: 'No Album Found' });
 
   return res.status(200).json({ success: true, data: allAlbums });
 });

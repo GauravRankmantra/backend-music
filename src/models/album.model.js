@@ -15,11 +15,11 @@ const albumSchema = new mongoose.Schema(
     },
     company: {
       type: String,
-      default:''
+      default: ''
     },
     coverImage: {
       type: String,
-      default:''
+      default: ''
     },
     genre: {
       type: mongoose.Schema.Types.ObjectId,

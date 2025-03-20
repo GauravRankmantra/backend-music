@@ -70,7 +70,7 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
 res.cookie('accessToken', accessToken, {
   httpOnly: true, 
   secure: true,  
-  sameSite: 'Strict', 
+  sameSite: 'lax', 
   maxAge: 24*60 * 60 * 1000 
 });
 
@@ -78,7 +78,7 @@ res.cookie('accessToken', accessToken, {
 res.cookie('refreshToken', refreshToken, {
   httpOnly: true,
   secure: true,
-  sameSite: 'Strict',
+  sameSite: 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000 
 });
 

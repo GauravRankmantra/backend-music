@@ -9,6 +9,7 @@ router.get('/', albumController.getAllAlbums);
 router.get('/album/search',albumController.getAlbumSearch);
 
 router.get('/featureAlbums', albumController.getFeaturedAlbums);
+router.get('/trendingAlbums',albumController.getTrendingAlbums)
 
 router.get('/top15', albumController.getTop15);
 
