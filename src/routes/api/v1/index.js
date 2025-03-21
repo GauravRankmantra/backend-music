@@ -9,6 +9,8 @@ const albumRouter=require("./album.router.js")
 const planRouter=require("./plan.router.js")
 // const adminRouter = require("./admin.router.js")
 const adminRouter = require("./admin.router.js")
+const trafficRouter=require("./traffic.router.js")
+
 let trafficData = {};
 
 // Function to get today's date in 'dd MMM' format (e.g., '01 Jan')
@@ -49,5 +51,6 @@ router.use("/genre",genreRouter)
 router.use("/albums",albumRouter)
 router.use("/plan",planRouter)
 router.use("/admin",adminRouter)
+router.use("/traffic",trafficRouter)
 
 module.exports=router;

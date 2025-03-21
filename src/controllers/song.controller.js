@@ -140,27 +140,61 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
 });
 
 module.exports.getAllSongs = asyncHandler(async (req, res) => {
+  const { search, page = 1, limit = 10 } = req.query;
   try {
-    const allSongs = await Song.find()
-      .populate('artist', 'fullName')
-      .populate('genre', 'name');
+    // Pagination setup
+    const parsedPage = Math.max(parseInt(page) || 1, 1);
+    const parsedLimit = Math.max(parseInt(limit) || 10, 1);
+    const skip = (parsedPage - 1) * parsedLimit;
 
-    if (!allSongs || allSongs.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No songs found.'
-      });
+    // Base query
+    let baseQuery = Song.find()
+      .populate('artist', 'fullName')
+      .populate('album', 'title');
+      console.log(baseQuery)
+
+    // Search functionality
+    if (search) {
+      baseQuery = baseQuery.or([
+        { title: { $regex: search, $options: 'i' } },
+        { 'artist.fullName': { $regex: search, $options: 'i' } },
+        { 'album.title': { $regex: search, $options: 'i' } }
+      ]);
     }
 
+    // Clone query for counting
+    const countQuery = baseQuery.clone().countDocuments();
+    
+    // Pagination
+    const dataQuery = baseQuery
+      .skip(skip)
+      .limit(parsedLimit)
+      .select('title coverImage duration artist album')
+      .lean();
+
+    // Execute both queries in parallel
+    const [total, songs] = await Promise.all([countQuery, dataQuery]);
+
+    // Format duration for frontend
+    const formattedSongs = songs.map(song => ({
+      ...song,
+      duration: song.duration,
+      artist: song.artist ? { fullName: song.artist.fullName } : null,
+      album: song.album ? { title: song.album.title } : null
+    }));
+
     res.status(200).json({
-      success: true,
-      message: 'All songs retrieved successfully.',
-      data: allSongs
+      data: formattedSongs,
+      total,
+      pages: Math.ceil(total / parsedLimit),
+      currentPage: parsedPage
     });
+
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'An error occurred while retrieving songs.'
+    console.error("Error fetching songs:", error);
+    res.status(500).json({ 
+      message: error.message || "Server error while fetching songs",
+      errorCode: "SONGS_FETCH_ERROR"
     });
   }
 });
