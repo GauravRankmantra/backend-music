@@ -10,6 +10,7 @@ app.use(express.urlencoded({ extended: true })); //data which is coming from url
 app.use(express.static('public'));
 const allowedDomains = [
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:5175',
   'http://localhost:3000',
   'https://cosmic-narwhal-6b8ed5.netlify.app',
@@ -19,21 +20,22 @@ const allowedDomains = [
   'https://odgmusic.netlify.app'
 ];
 
-// Middleware setup
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin, like mobile apps or curl requests
       if (!origin || allowedDomains.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
       }
     },
-    methods: 'GET, POST, PUT, DELETE,PATCH',
-    allowedHeaders: 'Content-Type, Authorization',
-    credentials: true // Allow credentials (cookies, etc.)
+    methods: 'GET, POST, PUT, DELETE, PATCH',
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true // Allow cookies and credentials to be sent
   })
 );
+
 app.use('/server/health', (req, res) => {
   res.send({ success: true, message: 'Server is running..' });
 });

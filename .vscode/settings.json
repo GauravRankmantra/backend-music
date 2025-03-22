@@ -1,4 +1,5 @@
 {
   "git.decorations.enabled": false,
-  "git.enabled": true
+  "git.enabled": true,
+  "git.ignoreLimitWarning": true
 }

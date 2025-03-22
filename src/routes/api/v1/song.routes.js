@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const songController = require('../../../controllers/song.controller.js');
 const { upload } = require('../../../middlelwares/multer.middleware.js');
@@ -24,6 +25,7 @@ router.post(
 );
 router.get('/', songController.getAllSongs);
 router.get('/top15', songController.getWeeklyTop15);
+router.get("/songs-uploaded-this-week",songController.thisWeekTotalSongUploded)
 router.put(
   '/:id',
   upload.single('coverImage'),

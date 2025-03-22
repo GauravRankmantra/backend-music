@@ -2,7 +2,7 @@ const { asyncHandler } = require('../utils/asyncHandler.js');
 const Song = require('../models/song.model.js');
 const { uploadFile } = require('../services/cloudinary.js');
 const { findByIdAndUpdate } = require('../models/user.model.js');
-
+const moment = require('moment');
 module.exports.uploadSong = asyncHandler(async (req, res) => {
   const { body, files } = req;
 
@@ -260,6 +260,58 @@ module.exports.updateSong = asyncHandler(async (req, res) => {
     .status(401)
     .json({ success: false, message: 'Unauthorize access' });
 });
+
+
+module.exports.thisWeekTotalSongUploded = asyncHandler(async (req, res) => {
+  try {
+    // Get start and end date of the current week
+    const startOfWeek = moment().startOf('isoWeek').toDate();
+    const endOfWeek = moment().endOf('isoWeek').toDate();
+
+    // Fetch songs uploaded within this week based on `createdAt` from timestamps
+    const songs = await Song.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: startOfWeek,
+            $lte: endOfWeek,
+          },
+          isPublished: true, // Ensure only published songs are counted
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, // Group by date
+          uploadedSongs: { $sum: 1 }, // Count songs per day
+        },
+      },
+      {
+        $sort: { _id: 1 }, // Sort by date
+      },
+    ]);
+
+    // Map the result to an array with date and uploadedSongs
+    const data = songs.map((song) => ({
+      date: song._id,
+      uploadedSongs: song.uploadedSongs,
+    }));
+
+    // Send success response with data
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error('Error fetching songs uploaded this week:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+});
+
+
+
 
 // module.exports.getSongDetail = asyncHandler(async(req,res)=>{
 //   const id=req.params;

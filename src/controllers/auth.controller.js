@@ -70,7 +70,7 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
 res.cookie('accessToken', accessToken, {
   httpOnly: true, 
   secure: true,  
-  sameSite: 'lax', 
+  sameSite: 'none', 
   maxAge: 24*60 * 60 * 1000 
 });
 
@@ -78,9 +78,10 @@ res.cookie('accessToken', accessToken, {
 res.cookie('refreshToken', refreshToken, {
   httpOnly: true,
   secure: true,
-  sameSite: 'lax',
+  sameSite: 'none',
   maxAge: 7 * 24 * 60 * 60 * 1000 
 });
+res.setHeader('Access-Control-Allow-Credentials', 'true');
 
 
   return res.status(200).json({
@@ -112,4 +113,42 @@ res.clearCookie("accessToken").clearCookie("refreshToken");
     success: true,
     message: 'User logged out successfully'
   });
+});
+
+module.exports.refreshToken = asyncHandler(async (req, res, next) => {
+  const { refreshToken } = req.cookies;
+
+  if (!refreshToken) {
+    return res.status(403).json({ message: 'Refresh Token not found' });
+  }
+
+  // Find user with matching refresh token
+  const user = await User.findOne({ refreshToken });
+
+  if (!user) {
+    return res.status(403).json({ message: 'Invalid Refresh Token' });
+  }
+
+  try {
+    // Verify refresh token
+    jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    // Generate new access token
+    const accessToken = user.generateAccessToken();
+
+    // Send new tokens
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Access token refreshed successfully',
+    });
+  } catch (error) {
+    return res.status(403).json({ message: 'Invalid Refresh Token' });
+  }
 });
