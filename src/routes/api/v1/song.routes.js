@@ -26,6 +26,7 @@ router.post(
 router.get('/', songController.getAllSongs);
 router.get('/top15', songController.getWeeklyTop15);
 router.get("/songs-uploaded-this-week",songController.thisWeekTotalSongUploded)
+router.get("/new-release",songController.getNewReleaseSong);
 router.put(
   '/:id',
   upload.single('coverImage'),

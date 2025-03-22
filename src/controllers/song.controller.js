@@ -3,6 +3,18 @@ const Song = require('../models/song.model.js');
 const { uploadFile } = require('../services/cloudinary.js');
 const { findByIdAndUpdate } = require('../models/user.model.js');
 const moment = require('moment');
+
+
+function formatDuration(seconds) {
+  const totalSeconds = Math.floor(seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  const formattedMinutes = minutes.toString().padStart(2, '0');
+  const formattedSeconds = remainingSeconds.toString().padStart(2, '0');
+  return `${formattedMinutes}:${formattedSeconds}`;
+}
+
+
 module.exports.uploadSong = asyncHandler(async (req, res) => {
   const { body, files } = req;
 
@@ -198,6 +210,87 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
     });
   }
 });
+
+
+
+
+module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
+  try {
+    const latestSongs = await Song.aggregate([
+      {
+        $match: { isPublished: true }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'artist',
+          foreignField: '_id',
+          as: 'artistDetails'
+        }
+      },
+      { $unwind: '$artistDetails' },
+      {
+        $lookup: {
+          from: 'genres',
+          localField: 'genre',
+          foreignField: '_id',
+          as: 'genreDetails'
+        }
+      },
+      { $unwind: '$genreDetails' },
+      {
+        $lookup: {
+          from: 'albums',
+          localField: 'album',
+          foreignField: '_id',
+          as: 'albumDetails'
+        }
+      },
+      {
+        $unwind: { path: '$albumDetails', preserveNullAndEmptyArrays: true }
+      },
+      { $sort: { createdAt: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          rank: 1,
+          artistDetails: 1,
+          albumDetails: 1,
+          genreDetails: 1,
+          duration: 1,
+          audioUrls: 1,
+          coverImage: 1,
+          plays: 1,
+          createdAt: 1
+        }
+      }
+    ]);
+
+    // Map through the results and format the duration
+    const formattedSongs = latestSongs.map(song => {
+      return {
+        ...song,
+        duration: formatDuration(song.duration) // Format the duration
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      count: formattedSongs.length,
+      data: formattedSongs
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+
 
 module.exports.deleteSong = asyncHandler(async (req, res) => {
   const user = req.user;
