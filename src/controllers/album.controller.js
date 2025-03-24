@@ -145,7 +145,25 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
       { $unwind: '$artistDetails' },
       { $unwind: '$genreDetails' },
 
-      // Step 7: Select only the fields we need
+      // Step 7: Modify songs array to include artist's full name in each song
+      {
+        $addFields: {
+          songs: {
+            $map: {
+              input: '$songs',
+              as: 'song',
+              in: {
+                $mergeObjects: [
+                  '$$song', // include all original song fields
+                  { artist: '$artistDetails.fullName' } // add artist's full name
+                ]
+              }
+            }
+          }
+        }
+      },
+
+      // Step 8: Select only the fields we need
       {
         $project: {
           _id: 1,
@@ -154,8 +172,9 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           releaseDate: 1,
           coverImage: 1,
           artistDetails: 1,
+          artist: '$artistDetails.fullName', // projecting artist's full name at the top level
           genreDetails: 1,
-          songs: 1,
+          songs: 1, // modified songs array with artist name inside each song
           comments: 1,
           totalSongs: 1,
           totalDuration: 1
@@ -164,7 +183,6 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
     ]);
 
     // Check if album is found
-
     if (!detail || detail.length === 0) {
       return res.status(200).json({ message: 'No Album found' });
     }
@@ -175,6 +193,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
     return res.status(500).json({ message: 'failed', error });
   }
 });
+
 
 module.exports.getTop15 = asyncHandler(async (req, res) => {
   try {
@@ -262,14 +281,15 @@ module.exports.getAllAlbums = asyncHandler(async (req, res) => {
 });
 
 module.exports.addComment = asyncHandler(async (req, res) => {
-  const { comment, userId, albumId } = req.body;
+  const { name, email, comment, albumId } = req.body;
 
-  if (!comment || !userId || !albumId)
+  if (!comment || !name|| !email || !albumId)
     return res
       .status(400)
       .json({ message: 'Comment, userId, albumId required' });
   const commentInfo = await Comment.create({
-    user: userId,
+    name,
+    email,
     comment,
     album: albumId
   });

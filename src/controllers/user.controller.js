@@ -8,7 +8,6 @@ const crypto = require('crypto');
 
 
 
-
 module.exports.registerUser = asyncHandler(async (req, res, next) => {
   const { body, files } = req;
   validateUser(req, res);
@@ -226,7 +225,7 @@ module.exports.featuredArtists = asyncHandler(async (req, res) => {
       isFeatured: 'true'
     });
 
-    res.status(200).json(artists);
+    res.status(200).json({success:true,data:artists});
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error });
   }
@@ -325,3 +324,42 @@ module.exports.getArtistSearch = asyncHandler(async (req, res) => {
 
   return res.status(200).json({ success: true, data: allAlbum });
 });
+
+module.exports.getArtistDetail = asyncHandler(async (req, res) => {
+  const id = req.params.id; // Make sure to destructure the id correctly from params
+  const artistId = new mongoose.Types.ObjectId(id.trim());
+  if (!id)
+    return res.status(400).json({ success: false, message: 'No id provided' });
+
+  try {
+    const artistDetail = await User.aggregate([
+      {
+        $match: { _id: artistId }, // Match the artist by ID
+      },
+      {
+        $lookup: {
+          from: 'songs', // Collection name of the songs
+          localField: '_id', // Artist ID in the User collection
+          foreignField: 'artist', // Artist ID in the Song collection
+          as: 'songs', // Output field for matching songs
+        },
+      },
+    ]);
+
+
+
+
+    if (!artistDetail || artistDetail.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: 'No artist found' });
+
+    return res.status(200).json({ success: true, data: artistDetail[0] }); 
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Server error while fetching artist details' });
+  }
+});
+

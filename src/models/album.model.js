@@ -41,6 +41,10 @@ const albumSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    popularity: {
+      type: Number, // Track popularity
+      default: 0
+    },
     songs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Song' }]
   },
   { timestamps: true }
