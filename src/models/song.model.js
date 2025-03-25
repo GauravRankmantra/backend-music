@@ -8,9 +8,9 @@ const songSchema = new mongoose.Schema(
       index: true,
       trim: true
     },
-    rank:{
-      type:String,
-      default:0
+    rank: {
+      type: String,
+      default: 0
     },
     artist: {
       type: mongoose.Schema.Types.ObjectId,
@@ -20,10 +20,14 @@ const songSchema = new mongoose.Schema(
     duration: {
       type: Number
     },
-    album:{
-      type:mongoose.Schema.Types.ObjectId,
-      ref:"Album"
-
+    album: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Album'
+    },
+    freeDownload: {
+      type: Boolean,
+      required: true,
+      default: false
     },
     audioUrls: {
       high: { type: String },
@@ -38,7 +42,7 @@ const songSchema = new mongoose.Schema(
     },
     genre: {
       type: mongoose.Types.ObjectId,
-      ref:"Genre"
+      ref: 'Genre'
     },
     plays: {
       type: Number,

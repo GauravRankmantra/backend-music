@@ -6,8 +6,6 @@ const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
-
-
 module.exports.registerUser = asyncHandler(async (req, res, next) => {
   const { body, files } = req;
   validateUser(req, res);
@@ -154,52 +152,76 @@ module.exports.updateUser = asyncHandler(async (req, res) => {
 });
 
 module.exports.forgetPassword = asyncHandler(async (req, res) => {
-  const user = req.user;
-  const { email } = user;
+  const { email } = req.body;
 
-  const validatedUser = await User.findById(user._id);
+  try {
+    // Find the user by email
+    const user = await User.findOne({ email });
 
-  if (!validatedUser) {
-    return res.status(404).json({ success: false, message: 'User not found' });
-  }
-  const otp = crypto.randomInt(100000, 999999).toString();
-
-  user.otp = otp;
-  user.otpExpires = Date.now() + 2 * 60 * 1000; // 2 minutes
-  await user.save();
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
     }
-  });
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Password Reset OTP',
-    text: `Your OTP for password reset is ${otp}. It will expire in 2 minutes.`
-  };
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Error sending email',
-        error: error
-      });
-    }
-    return res.status(200).json({
-      success: true,
-      message: 'OTP sent to your email'
+
+    // Generate OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    user.otp = otp;
+    user.otpExpires = Date.now() + 2 * 60 * 1000; // OTP expires in 2 minutes
+
+    // Save the updated user with the OTP and expiry time
+    await user.save();
+
+    // Setup nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
     });
-  });
+
+    // Email options
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Password Reset OTP',
+      text: `Your OTP for password reset is ${otp}. It will expire in 2 minutes.`
+    };
+
+    // Send the email
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return res.status(500).json({
+          success: false,
+          message: 'Error sending email',
+          error: error.message
+        });
+      }
+
+      // Successfully sent email
+      return res.status(200).json({
+        success: true,
+        message: 'OTP sent to your email'
+      });
+    });
+  } catch (error) {
+    // Handle any errors
+    return res.status(500).json({
+      success: false,
+      message: 'Something went wrong. Please try again later.',
+      error: error.message
+    });
+  }
 });
+
 module.exports.verifyOtp = asyncHandler(async (req, res) => {
-  const { userOtp, newpassword } = req.body;
-  const user = req.user;
+  const { email, otp, newPassword } = req.body;
+  const user = await User.findOne({ email: email });
+
   const validateUser = await User.findOne({
     _id: user._id,
-    otp: userOtp,
+    otp: otp,
     otpExpires: { $gt: new Date() }
   });
 
@@ -207,7 +229,7 @@ module.exports.verifyOtp = asyncHandler(async (req, res) => {
     return res
       .status(404)
       .json({ success: false, message: 'Invalid OTP or OTP expired' });
-  validateUser.password = newpassword;
+  validateUser.password = newPassword;
   validateUser.otp = undefined;
   validateUser.otpExpires = undefined;
   await validateUser.save();
@@ -225,7 +247,7 @@ module.exports.featuredArtists = asyncHandler(async (req, res) => {
       isFeatured: 'true'
     });
 
-    res.status(200).json({success:true,data:artists});
+    res.status(200).json({ success: true, data: artists });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error });
   }
@@ -334,32 +356,29 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
   try {
     const artistDetail = await User.aggregate([
       {
-        $match: { _id: artistId }, // Match the artist by ID
+        $match: { _id: artistId } // Match the artist by ID
       },
       {
         $lookup: {
           from: 'songs', // Collection name of the songs
           localField: '_id', // Artist ID in the User collection
           foreignField: 'artist', // Artist ID in the Song collection
-          as: 'songs', // Output field for matching songs
-        },
-      },
+          as: 'songs' // Output field for matching songs
+        }
+      }
     ]);
-
-
-
 
     if (!artistDetail || artistDetail.length === 0)
       return res
         .status(404)
         .json({ success: false, message: 'No artist found' });
 
-    return res.status(200).json({ success: true, data: artistDetail[0] }); 
+    return res.status(200).json({ success: true, data: artistDetail[0] });
   } catch (error) {
     console.error(error);
-    return res
-      .status(500)
-      .json({ success: false, message: 'Server error while fetching artist details' });
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while fetching artist details'
+    });
   }
 });
-

@@ -211,9 +211,6 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
   }
 });
 
-
-
-
 module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
   try {
     const latestSongs = await Song.aggregate([
