@@ -1,4 +1,5 @@
 const User = require('../models/user.model.js');
+const Song = require('../models/song.model.js');
 const { asyncHandler } = require('../utils/asyncHandler.js');
 const { validateUser } = require('../utils/validateUser.js');
 const { uploadFile } = require('../services/cloudinary.js');
@@ -150,7 +151,6 @@ module.exports.updateUser = asyncHandler(async (req, res) => {
     .status(200)
     .json({ success: true, message: 'User created Successfully' });
 });
-
 module.exports.forgetPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
@@ -215,6 +215,44 @@ module.exports.forgetPassword = asyncHandler(async (req, res) => {
   }
 });
 
+module.exports.getPurchasedSong = asyncHandler(async (req, res) => {
+  try {
+    // Find the user by ID from the request (assuming authentication middleware)
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get the list of purchased songs (IDs)
+    const purchasedSongIds = user.purchasedSongs;
+
+    if (!purchasedSongIds || purchasedSongIds.length === 0) {
+      return res.status(200).json({ message: 'No purchased songs found' });
+    }
+
+    // Find all purchased songs and populate their artist and album details
+    const purchasedSongs = await Song.find({ _id: { $in: purchasedSongIds } })
+      .populate({
+        path: 'artist', // Populate the artist field
+        select: 'fullName bio', // Select only necessary fields from the artist
+      })
+      .populate({
+        path: 'album', // Populate the album field
+        select: 'title coverImage', // Select only necessary fields from the album
+      });
+
+    // Return the detailed song info
+    return res.status(200).json({
+      success: true,
+      purchasedSongs,
+    });
+  } catch (error) {
+    console.error('Error fetching purchased songs:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 module.exports.verifyOtp = asyncHandler(async (req, res) => {
   const { email, otp, newPassword } = req.body;
   const user = await User.findOne({ email: email });
@@ -229,7 +267,7 @@ module.exports.verifyOtp = asyncHandler(async (req, res) => {
     return res
       .status(404)
       .json({ success: false, message: 'Invalid OTP or OTP expired' });
-  validateUser.password = newPassword;
+  validateUser.password = newpassword;
   validateUser.otp = undefined;
   validateUser.otpExpires = undefined;
   await validateUser.save();

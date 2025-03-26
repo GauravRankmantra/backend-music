@@ -1,9 +1,10 @@
 const { asyncHandler } = require('../utils/asyncHandler.js');
 const Song = require('../models/song.model.js');
+const User = require("../models/user.model.js")
+const Genre = require('../models/genre.model.js');
 const { uploadFile } = require('../services/cloudinary.js');
 const { findByIdAndUpdate } = require('../models/user.model.js');
 const moment = require('moment');
-
 
 function formatDuration(seconds) {
   const totalSeconds = Math.floor(seconds);
@@ -13,7 +14,6 @@ function formatDuration(seconds) {
   const formattedSeconds = remainingSeconds.toString().padStart(2, '0');
   return `${formattedMinutes}:${formattedSeconds}`;
 }
-
 
 module.exports.uploadSong = asyncHandler(async (req, res) => {
   const { body, files } = req;
@@ -78,31 +78,30 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
 
 module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
   try {
-   
     const top15 = await Song.aggregate([
       {
-        $sort: { plays: -1 } 
+        $sort: { plays: -1 }
       },
       {
         $limit: 15 // Limit to top 15 songs
       },
       {
         $lookup: {
-          from: 'users', 
-          localField: 'artist', 
-          foreignField: '_id', 
-          as: 'artistInfo' 
+          from: 'users',
+          localField: 'artist',
+          foreignField: '_id',
+          as: 'artistInfo'
         }
       },
       {
-        $unwind: '$artistInfo' 
+        $unwind: '$artistInfo'
       },
       {
         $lookup: {
-          from: 'genres', 
-          localField: 'genre', 
-          foreignField: '_id', 
-          as: 'genreInfo' 
+          from: 'genres',
+          localField: 'genre',
+          foreignField: '_id',
+          as: 'genreInfo'
         }
       },
       {
@@ -117,12 +116,12 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
           isPublished: 1,
           createdAt: 1,
           updatedAt: 1,
-        
-          artist: '$artistInfo.fullName', 
-          genre: '$genreInfo.name', 
+
+          artist: '$artistInfo.fullName',
+          genre: '$genreInfo.name',
           rank: {
             $cond: {
-              if: { $eq: [{ $type: '$rank' }, 'missing'] }, 
+              if: { $eq: [{ $type: '$rank' }, 'missing'] },
               then: 0,
               else: '$rank'
             }
@@ -163,7 +162,7 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
     let baseQuery = Song.find()
       .populate('artist', 'fullName')
       .populate('album', 'title');
-      console.log(baseQuery)
+    console.log(baseQuery);
 
     // Search functionality
     if (search) {
@@ -176,7 +175,7 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
 
     // Clone query for counting
     const countQuery = baseQuery.clone().countDocuments();
-    
+
     // Pagination
     const dataQuery = baseQuery
       .skip(skip)
@@ -188,7 +187,7 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
     const [total, songs] = await Promise.all([countQuery, dataQuery]);
 
     // Format duration for frontend
-    const formattedSongs = songs.map(song => ({
+    const formattedSongs = songs.map((song) => ({
       ...song,
       duration: song.duration,
       artist: song.artist ? { fullName: song.artist.fullName } : null,
@@ -201,12 +200,11 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
       pages: Math.ceil(total / parsedLimit),
       currentPage: parsedPage
     });
-
   } catch (error) {
-    console.error("Error fetching songs:", error);
-    res.status(500).json({ 
-      message: error.message || "Server error while fetching songs",
-      errorCode: "SONGS_FETCH_ERROR"
+    console.error('Error fetching songs:', error);
+    res.status(500).json({
+      message: error.message || 'Server error while fetching songs',
+      errorCode: 'SONGS_FETCH_ERROR'
     });
   }
 });
@@ -266,7 +264,7 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
     ]);
 
     // Map through the results and format the duration
-    const formattedSongs = latestSongs.map(song => {
+    const formattedSongs = latestSongs.map((song) => {
       return {
         ...song,
         duration: formatDuration(song.duration) // Format the duration
@@ -287,6 +285,33 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
   }
 });
 
+module.exports.getSongByGenre = asyncHandler(async (req, res) => {
+  try {
+    const genreName = req.params.name.toLowerCase();
+
+    // Find the genre by name
+    const genre = await Genre.findOne({ name: genreName });
+    if (!genre) {
+      return res.status(404).json({ message: 'Genre not found' });
+    }
+
+    // Find songs by genre id
+    const songs = await Song.find({ genre: genre._id }).populate('artist');
+
+    return res.json({ songs });
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error });
+  }
+});
+module.exports.isPurchased=asyncHandler(async(req,res)=>{
+  try {
+    const user = await User.findById(req.user._id);
+    const isPurchased = user.purchasedSongs.includes(req.params.songId);
+    res.json({ isPurchased });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+})
 
 
 module.exports.deleteSong = asyncHandler(async (req, res) => {
@@ -295,15 +320,13 @@ module.exports.deleteSong = asyncHandler(async (req, res) => {
 
   const song = await Song.findById(id);
   //if (user.role == 'admin' || user._id.equals(song.artist)) {
-    const del = await Song.findByIdAndDelete(id);
-    if (!del) {
-      return res
-        .status(500)
-        .json({ success: false, message: 'Deletion failed' });
-    }
-    return res
-      .status(200)
-      .json({ success: true, message: 'Song deleted successfully' });
+  const del = await Song.findByIdAndDelete(id);
+  if (!del) {
+    return res.status(500).json({ success: false, message: 'Deletion failed' });
+  }
+  return res
+    .status(200)
+    .json({ success: true, message: 'Song deleted successfully' });
   //}
   return res
     .status(401)
@@ -351,7 +374,6 @@ module.exports.updateSong = asyncHandler(async (req, res) => {
     .json({ success: false, message: 'Unauthorize access' });
 });
 
-
 module.exports.thisWeekTotalSongUploded = asyncHandler(async (req, res) => {
   try {
     // Get start and end date of the current week
@@ -364,44 +386,41 @@ module.exports.thisWeekTotalSongUploded = asyncHandler(async (req, res) => {
         $match: {
           createdAt: {
             $gte: startOfWeek,
-            $lte: endOfWeek,
+            $lte: endOfWeek
           },
-          isPublished: true, // Ensure only published songs are counted
-        },
+          isPublished: true // Ensure only published songs are counted
+        }
       },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, // Group by date
-          uploadedSongs: { $sum: 1 }, // Count songs per day
-        },
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, // Group by date
+          uploadedSongs: { $sum: 1 } // Count songs per day
+        }
       },
       {
-        $sort: { _id: 1 }, // Sort by date
-      },
+        $sort: { _id: 1 } // Sort by date
+      }
     ]);
 
     // Map the result to an array with date and uploadedSongs
     const data = songs.map((song) => ({
       date: song._id,
-      uploadedSongs: song.uploadedSongs,
+      uploadedSongs: song.uploadedSongs
     }));
 
     // Send success response with data
     res.status(200).json({
       success: true,
-      data,
+      data
     });
   } catch (error) {
     console.error('Error fetching songs uploaded this week:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Server error'
     });
   }
 });
-
-
-
 
 // module.exports.getSongDetail = asyncHandler(async(req,res)=>{
 //   const id=req.params;

@@ -20,10 +20,16 @@ const songSchema = new mongoose.Schema(
     duration: {
       type: Number
     },
+    price: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
     album: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Album'
     },
+
     freeDownload: {
       type: Boolean,
       required: true,

@@ -27,6 +27,8 @@ router.get('/', songController.getAllSongs);
 router.get('/top15', songController.getWeeklyTop15);
 router.get("/songs-uploaded-this-week",songController.thisWeekTotalSongUploded)
 router.get("/new-release",songController.getNewReleaseSong);
+router.get("/genre/:name",songController.getSongByGenre)
+router.get("/isPurchased/:songId",auth,songController.isPurchased)
 router.put(
   '/:id',
   upload.single('coverImage'),

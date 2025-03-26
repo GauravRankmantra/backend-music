@@ -86,6 +86,7 @@ module.exports.getTrendingAlbums = asyncHandler(async (req, res) => {
 
 module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
   const { id } = req.params;
+
   const albumId = new mongoose.Types.ObjectId(id.trim());
 
   try {
@@ -172,15 +173,16 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           releaseDate: 1,
           coverImage: 1,
           artistDetails: 1,
-          artist: '$artistDetails.fullName', // projecting artist's full name at the top level
+          artist: '$artistDetails.fullName', 
           genreDetails: 1,
-          songs: 1, // modified songs array with artist name inside each song
+          songs: 1, 
           comments: 1,
           totalSongs: 1,
           totalDuration: 1
         }
       }
     ]);
+
 
     // Check if album is found
     if (!detail || detail.length === 0) {
