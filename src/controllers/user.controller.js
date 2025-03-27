@@ -291,6 +291,41 @@ module.exports.featuredArtists = asyncHandler(async (req, res) => {
   }
 });
 
+module.exports.searchArtist = asyncHandler(async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is required",
+      });
+    }
+
+    const artist = await User.find({
+      fullName: { $regex: query, $options: "i" }, // Case-insensitive search
+    });
+
+    if (!albums || artist.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No Artist found matching your search.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Found ${artist.length} Artist(s) matching "${query}".`,
+      data: albums,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "An error occurred while searching for Artist.",
+    });
+  }
+});
+
 //Only for Admin
 module.exports.updateUser2 = asyncHandler(async (req, res) => {
   const { id } = req.params;

@@ -196,6 +196,98 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
   }
 });
 
+module.exports.searchAlbums = asyncHandler(async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is required",
+      });
+    }
+
+    const albums = await Album.find({
+      title: { $regex: query, $options: "i" }, // Case-insensitive search
+    });
+
+    if (!albums || albums.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No albums found matching your search.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Found ${albums.length} album(s) matching "${query}".`,
+      data: albums,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "An error occurred while searching for albums.",
+    });
+  }
+});
+
+module.exports.filterAlbums = asyncHandler(async (req, res) => {
+  try {
+    const { filterType, value } = req.query;
+
+    let filterCondition = {};
+
+    switch (filterType) {
+      case "genre":
+        filterCondition = { genre: value }; // Assuming genre is a string
+        break;
+      case "artist":
+        filterCondition = { artist: value }; // Assuming artist is an ID or string
+        break;
+      case "releaseDate":
+        // Assuming value is in the format 'YYYY-MM-DD' or a year like '2022'
+        filterCondition = { releaseDate: { $gte: new Date(value) } };
+        break;
+      case "popularity":
+        // Assuming albums have a 'plays' field for popularity
+        filterCondition = {}; // No specific condition, sort by plays below
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: "Invalid filter type.",
+        });
+    }
+
+    let albums;
+
+    // Handle the popularity filter separately (sort by 'plays')
+    if (filterType === "popularity") {
+      albums = await Album.find(filterCondition).sort({ plays: -1 });
+    } else {
+      albums = await Album.find(filterCondition);
+    }
+
+    if (!albums || albums.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No albums found for the selected filter: ${filterType}`,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Found ${albums.length} album(s) for filter: ${filterType}.`,
+      data: albums,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "An error occurred while filtering albums.",
+    });
+  }
+});
+
 
 module.exports.getTop15 = asyncHandler(async (req, res) => {
   try {

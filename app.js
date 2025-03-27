@@ -1,12 +1,28 @@
 const express = require('express');
+require('./src/services/googleAuth.js'); 
+require('./src/services/facebookAuth.js')
+const passport = require('passport');
 const cookieParser = require('cookie-parser');
+const session = require('express-session');
 const cors = require('cors');
+
 const app = express();
 
 //middlewares
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.urlencoded({ extended: true })); //data which is coming from url
+app.use(express.urlencoded({ extended: true })); 
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'hextocode', 
+  resave: false, 
+  saveUninitialized: false, 
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',  
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 
+  }
+}));
+app.use(passport.initialize());
 app.use(express.static('public'));
 const allowedDomains = [
   'http://localhost:5173',
@@ -31,9 +47,13 @@ app.use(
       }
     },
     methods: 'GET, POST, PUT, DELETE, PATCH',
-    allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Credentials'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Access-Control-Allow-Credentials'
+    ],
 
-    credentials: true 
+    credentials: true
   })
 );
 

@@ -23,7 +23,9 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function () {
+        return !this.googleId && !this.facebookId;
+      },
       trim: true
     },
     role: {
@@ -89,6 +91,8 @@ const userSchema = new mongoose.Schema(
         index: true
       }
     ],
+    googleId: { type: String, unique: true, sparse: true },
+    facebookId: { type: String, unique: true, sparse: true },
     profileColor: {
       type: String,
       default: ''

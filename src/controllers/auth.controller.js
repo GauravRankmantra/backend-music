@@ -1,6 +1,8 @@
 const validator = require('validator');
 const User = require('../models/user.model.js');
 const { asyncHandler } = require('../utils/asyncHandler');
+const passport = require('passport');
+const { model } = require('mongoose');
 
 const generateTokens = async (user, res) => {
   try {
@@ -20,7 +22,6 @@ const generateTokens = async (user, res) => {
 
 module.exports.logIn = asyncHandler(async (req, res, next) => {
   const { email = '', userName = '', password = '' } = req.body;
-
 
   if ((!email && !userName) || !password) {
     return res.status(400).json({
@@ -42,7 +43,7 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
   // Find user by email OR username
   const user = await User.findOne({
     $or: [{ email: trimmedEmail }, { userName: trimmedUserName }]
-  })
+  });
 
   if (!user) {
     return res.status(401).json({
@@ -67,32 +68,61 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
   // res.setHeader('x-refresh-token', refreshToken);
 
   // Set the access token as a cookie
-res.cookie('accessToken', accessToken, {
-  httpOnly: true, 
-  secure: true,  
-  sameSite: 'none', 
-  maxAge: 24*60 * 60 * 1000 
-});
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 24 * 60 * 60 * 1000
+  });
 
-// Set the refresh token as a cookie
-res.cookie('refreshToken', refreshToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'none',
-  maxAge: 7 * 24 * 60 * 60 * 1000 
-});
-res.setHeader('Access-Control-Allow-Credentials', 'true');
-
+  // Set the refresh token as a cookie
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   return res.status(200).json({
     success: true,
     message: 'User Logged in Successfully',
     user: {
-      ...user.toObject(), 
-      password: undefined 
-    },
-
+      ...user.toObject(),
+      password: undefined
+    }
   });
+});
+module.exports.googleCallback = asyncHandler(async (req, res) => {
+  // Successful Google login, generate JWT tokens
+  const { accessToken, refreshToken } = await generateTokens(req.user, res);
+
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 24 * 60 * 60 * 1000
+  });
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: 'Logged in successfully with Google',
+    user: req.user
+  });
+});
+module.exports.getUserProfile = asyncHandler(async (req, res) => {
+  const user = req.user;
+  if (!user)
+    return res.status(404).json({ success: false, message: 'No user found ' });
+
+  return res.status(200).json({ success: true, user: user });
 });
 
 module.exports.logOut = asyncHandler(async (req, res, next) => {
@@ -103,12 +133,10 @@ module.exports.logOut = asyncHandler(async (req, res, next) => {
       message: 'Unauthorized: No user found'
     });
   }
-  
-
 
   await User.findByIdAndUpdate(user._id, { refreshToken: '' });
 
-res.clearCookie("accessToken").clearCookie("refreshToken");
+  res.clearCookie('accessToken').clearCookie('refreshToken');
   return res.status(200).json({
     success: true,
     message: 'User logged out successfully'
@@ -141,12 +169,12 @@ module.exports.refreshToken = asyncHandler(async (req, res, next) => {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
     });
 
     return res.status(200).json({
       success: true,
-      message: 'Access token refreshed successfully',
+      message: 'Access token refreshed successfully'
     });
   } catch (error) {
     return res.status(403).json({ message: 'Invalid Refresh Token' });

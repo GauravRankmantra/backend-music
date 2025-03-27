@@ -12,6 +12,8 @@ router.get('/featureAlbums', albumController.getFeaturedAlbums);
 router.get('/trendingAlbums',albumController.getTrendingAlbums)
 
 router.get('/top15', albumController.getTop15);
+router.get('/search',albumController.searchAlbums)
+router.get("/filterAlbums",albumController.filterAlbums)
 
 router.post('/', upload.single('coverImage'), albumController.addAlbums);
 

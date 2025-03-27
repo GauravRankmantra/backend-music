@@ -6,14 +6,21 @@ const { uploadFile } = require('../services/cloudinary.js');
 const { findByIdAndUpdate } = require('../models/user.model.js');
 const moment = require('moment');
 
-function formatDuration(seconds) {
-  const totalSeconds = Math.floor(seconds);
-  const minutes = Math.floor(totalSeconds / 60);
-  const remainingSeconds = totalSeconds % 60;
-  const formattedMinutes = minutes.toString().padStart(2, '0');
-  const formattedSeconds = remainingSeconds.toString().padStart(2, '0');
-  return `${formattedMinutes}:${formattedSeconds}`;
+function formatDuration(duration) {
+  if (duration < 10) {
+    // Assume the value is in minutes
+    const minutes = Math.floor(duration);
+    const seconds = Math.round((duration - minutes) * 60);
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  } else {
+    // Assume the value is in seconds
+    const totalSeconds = Math.round(duration);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  }
 }
+
 
 module.exports.uploadSong = asyncHandler(async (req, res) => {
   const { body, files } = req;
@@ -61,6 +68,8 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     album: body.album ? body.album : null,
     coverImage: coverImageUrl,
     genre: body.genre,
+    freeDownload:body.freeDownload,
+    price:body.price,
     plays: 0, // Optional: Can be dynamically set or start from 0
     isPublished: body.isPublished || true // Default to true
   });
@@ -116,6 +125,7 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
           isPublished: 1,
           createdAt: 1,
           updatedAt: 1,
+          duration:1,
 
           artist: '$artistInfo.fullName',
           genre: '$genreInfo.name',
@@ -136,6 +146,7 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
         message: 'No songs found.'
       });
     }
+    console.log(top15)
 
     res.status(200).json({
       success: true,
@@ -284,6 +295,40 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
     });
   }
 });
+module.exports.searchSong = asyncHandler(async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is required",
+      });
+    }
+
+    const songs = await Song.find({
+      title: { $regex: query, $options: "i" }, // Case-insensitive search
+    });
+
+    if (!albums || songs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No Song found matching your search.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Found ${songs.length} Song(s) matching "${query}".`,
+      data: albums,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "An error occurred while searching for Song.",
+    });
+  }
+});
 
 module.exports.getSongByGenre = asyncHandler(async (req, res) => {
   try {
@@ -296,7 +341,10 @@ module.exports.getSongByGenre = asyncHandler(async (req, res) => {
     }
 
     // Find songs by genre id
-    const songs = await Song.find({ genre: genre._id }).populate('artist');
+    const songs = await Song.find({ genre: genre._id }).populate({
+      path: 'artist',
+      select: 'fullName', // Select only the fullName field
+    }).select('-album')
 
     return res.json({ songs });
   } catch (error) {
