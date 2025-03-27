@@ -48,7 +48,7 @@ router.get(
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.redirect('http://localhost:5174/Oauth');
+    res.redirect('https://odgmusic.netlify.app/Oauth');
   }
 );
 
@@ -81,7 +81,7 @@ router.get(
       sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
-    res.redirect('http://localhost:5174/Oauth');
+    res.redirect('https://odgmusic.netlify.app/Oauth');
     //   `${process.env.FRONTEND_URL}/profile?userId=${req.user._id}&name=${encodeURIComponent(req.user.fullName)}`
   }
 );
