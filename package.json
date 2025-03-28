@@ -38,8 +38,5 @@
   },
   "lint-staged": {
     "**/*.{js,json,md}": "prettier --write"
-  },
-  "devDependencies": {
-    "husky": "^8.0.3"
   }
 }
