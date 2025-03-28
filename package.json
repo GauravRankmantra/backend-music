@@ -6,7 +6,9 @@
     "dev": "nodemon index.js",
     "start": "node index.js",
     "prepare": "husky && husky install",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+     "postinstall": "husky install",
+       "install": "apt-get install -y git && npm install"
   },
   "keywords": [],
   "author": "",
