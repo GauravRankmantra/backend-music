@@ -46,7 +46,20 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
       user
     });
   } catch (error) {
-    return res.status(500).json({ message: 'internal server error ', error });
+    if (error.code === 11000) {
+      // Duplicate key error
+      const duplicateField = Object.keys(error.keyValue)[0]; // Get the field that caused the error
+      return res.status(400).json({
+        success: false,
+        message: `${duplicateField.charAt(0).toUpperCase() + duplicateField.slice(1)} already exists`
+      });
+    } else {
+      // Other errors
+      return res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
   }
 });
 module.exports.newUsers = asyncHandler(async (req, res, next) => {
@@ -235,17 +248,17 @@ module.exports.getPurchasedSong = asyncHandler(async (req, res) => {
     const purchasedSongs = await Song.find({ _id: { $in: purchasedSongIds } })
       .populate({
         path: 'artist', // Populate the artist field
-        select: 'fullName bio', // Select only necessary fields from the artist
+        select: 'fullName bio' // Select only necessary fields from the artist
       })
       .populate({
         path: 'album', // Populate the album field
-        select: 'title coverImage', // Select only necessary fields from the album
+        select: 'title coverImage' // Select only necessary fields from the album
       });
 
     // Return the detailed song info
     return res.status(200).json({
       success: true,
-      purchasedSongs,
+      purchasedSongs
     });
   } catch (error) {
     console.error('Error fetching purchased songs:', error);
@@ -298,30 +311,30 @@ module.exports.searchArtist = asyncHandler(async (req, res) => {
     if (!query) {
       return res.status(400).json({
         success: false,
-        message: "Search query is required",
+        message: 'Search query is required'
       });
     }
 
     const artist = await User.find({
-      fullName: { $regex: query, $options: "i" }, // Case-insensitive search
+      fullName: { $regex: query, $options: 'i' } // Case-insensitive search
     });
 
     if (!albums || artist.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No Artist found matching your search.",
+        message: 'No Artist found matching your search.'
       });
     }
 
     res.status(200).json({
       success: true,
       message: `Found ${artist.length} Artist(s) matching "${query}".`,
-      data: albums,
+      data: albums
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message || "An error occurred while searching for Artist.",
+      message: error.message || 'An error occurred while searching for Artist.'
     });
   }
 });

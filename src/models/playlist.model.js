@@ -13,6 +13,10 @@ const playListSchema = new mongoose.Schema(
       type: String,
       maxlength: 50
     },
+    coverImage:{
+      type:String,
+      default:''
+    },
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'

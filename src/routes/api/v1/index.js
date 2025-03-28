@@ -7,6 +7,8 @@ const songRouter = require("./song.routes.js")
 const genreRouter = require("./genre.route.js")
 const albumRouter=require("./album.router.js")
 const planRouter=require("./plan.router.js")
+const homeRouter = require("./home.router.js")
+const playlistRouter=require("./playlist.router.js")
 // const adminRouter = require("./admin.router.js")
 const adminRouter = require("./admin.router.js")
 const trafficRouter=require("./traffic.router.js")
@@ -45,6 +47,8 @@ router.use("/traffic", (req, res) => {
 
 
 router.use("/user",userRouter)
+router.use("/playlist",playlistRouter)
+router.use("/home",homeRouter)
 router.use("/auth",authRouter)
 router.use("/song",songRouter)
 router.use("/genre",genreRouter)

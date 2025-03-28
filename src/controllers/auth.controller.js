@@ -20,6 +20,8 @@ const generateTokens = async (user, res) => {
   }
 };
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 module.exports.logIn = asyncHandler(async (req, res, next) => {
   const { email = '', userName = '', password = '' } = req.body;
 
@@ -70,17 +72,17 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
   // Set the access token as a cookie
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    maxAge: 24 * 60 * 60 * 1000
+    secure: isProduction,  
+    sameSite: isProduction ? 'none' : 'lax',  
+    maxAge: 24 * 60 * 60 * 1000 
   });
+  
 
-  // Set the refresh token as a cookie
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    secure: isProduction,  
+    sameSite: isProduction ? 'none' : 'lax',  
+    maxAge: 7 * 24 * 60 * 60 * 1000  
   });
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
