@@ -6,20 +6,20 @@ const { uploadFile } = require('../services/cloudinary.js');
 const { findByIdAndUpdate } = require('../models/user.model.js');
 const moment = require('moment');
 
-function formatDuration(duration) {
-  if (duration < 10) {
-    // Assume the value is in minutes
-    const minutes = Math.floor(duration);
-    const seconds = Math.round((duration - minutes) * 60);
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  } else {
-    // Assume the value is in seconds
-    const totalSeconds = Math.round(duration);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  }
-}
+// function formatDuration(duration) {
+//   if (duration < 10) {
+//     // Assume the value is in minutes
+//     const minutes = Math.floor(duration);
+//     const seconds = Math.round((duration - minutes) * 60);
+//     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+//   } else {
+//     // Assume the value is in seconds
+//     const totalSeconds = Math.round(duration);
+//     const minutes = Math.floor(totalSeconds / 60);
+//     const seconds = totalSeconds % 60;
+//     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+//   }
+// }
 
 
 module.exports.uploadSong = asyncHandler(async (req, res) => {
@@ -275,17 +275,12 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
     ]);
 
     // Map through the results and format the duration
-    const formattedSongs = latestSongs.map((song) => {
-      return {
-        ...song,
-        duration: formatDuration(song.duration) // Format the duration
-      };
-    });
+
 
     res.status(200).json({
       success: true,
-      count: formattedSongs.length,
-      data: formattedSongs
+      count: latestSongs.length,
+      data: latestSongs
     });
   } catch (error) {
     res.status(500).json({

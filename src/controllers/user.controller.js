@@ -101,6 +101,84 @@ module.exports.newUsers = asyncHandler(async (req, res, next) => {
     return res.status(500).json({ message: 'Error fetching user data', error });
   }
 });
+module.exports.addHistory = asyncHandler(async (req, res) => {
+  const { songId } = req.body;
+  const userId = req.user._id;
+
+  // Validate input
+  if (!userId || !songId) {
+    return res
+      .status(400)
+      .json({ message: 'User ID and Song ID are required' });
+  }
+
+  // Find the user by ID
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  // Find the song by ID
+  const song = await Song.findById(songId);
+
+  if (!song) {
+    return res.status(404).json({ message: 'Song not found' });
+  }
+
+  // Check if the song is already in the user's history
+  const songExistsInHistory =
+    user.songsHistory && user.songsHistory.length > 0
+      ? user.songsHistory.some((entry) => entry.toString() === songId)
+      : false;
+
+  if (!songExistsInHistory) {
+    // Add the song to the user's history
+    user.songsHistory.push(songId);
+
+    // Limit the history to the last 10 songs
+    if (user.songsHistory.length > 10) {
+      user.songsHistory.shift(); // Remove the oldest entry if history exceeds 10 songs
+    }
+
+    // Save the updated user
+    await user.save();
+  }
+
+  // Send a success response
+  res.status(200).json({
+    message: 'Song added to history',
+    history: user.history
+  });
+});
+module.exports.getHistory = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  try {
+    // Find the user by ID and get the songHistory field
+    const user = await User.findById(userId).populate({
+      path: 'songsHistory',
+      select: '_id title coverImage artist duration audioUrls', // Selecting only the required fields
+      populate: {
+        path: 'artist', // Populate the artist field (which is an ObjectId in Song model)
+        select: 'fullName' // Assuming 'fullName' is the field in the User model for the artist's name
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Returning the history as a response
+    res.status(200).json({
+      success: true,
+      data: user.songsHistory
+    });
+  } catch (error) {
+    console.error('Error fetching song history:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
 
 module.exports.changePassword = asyncHandler(async (req, res, next) => {
   const { newPassword, oldPassword } = req.body;
