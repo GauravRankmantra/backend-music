@@ -146,7 +146,7 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
         message: 'No songs found.'
       });
     }
-    console.log(top15)
+
 
     res.status(200).json({
       success: true,
@@ -173,7 +173,7 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
     let baseQuery = Song.find()
       .populate('artist', 'fullName')
       .populate('album', 'title');
-    console.log(baseQuery);
+ 
 
     // Search functionality
     if (search) {
@@ -305,7 +305,7 @@ module.exports.searchSong = asyncHandler(async (req, res) => {
       title: { $regex: query, $options: "i" }, // Case-insensitive search
     });
 
-    if (!albums || songs.length === 0) {
+    if (!songs || songs.length === 0) {
       return res.status(404).json({
         success: false,
         message: "No Song found matching your search.",
@@ -315,7 +315,7 @@ module.exports.searchSong = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       message: `Found ${songs.length} Song(s) matching "${query}".`,
-      data: albums,
+      data: songs,
     });
   } catch (error) {
     res.status(500).json({

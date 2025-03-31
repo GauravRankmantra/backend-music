@@ -362,7 +362,7 @@ module.exports.verifyOtp = asyncHandler(async (req, res) => {
   validateUser.otp = undefined;
   validateUser.otpExpires = undefined;
   await validateUser.save();
-  console.log('After storing user in db : ', validateUser);
+
   return res.status(200).json({
     success: true,
     message: 'Otp validate success and password updated'

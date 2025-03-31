@@ -11,7 +11,7 @@ const playListSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      maxlength: 50
+      maxlength: 100
     },
     coverImage:{
       type:String,
