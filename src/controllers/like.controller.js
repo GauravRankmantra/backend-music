@@ -4,28 +4,34 @@ const mongoose = require("mongoose")
 const Song = require("../models/song.model.js")
 
 module.exports.addLike = asyncHandler(async (req, res) => {
-    const { songId } = req.body;
-    const likedBy = req.user?._id; 
+    const { songId, albumId } = req.body;
+    const likedBy = req.user?._id;
   
-    if (!songId) {
-      return res.status(400).json({ message: 'Song ID is required' });
+    if (!songId && !albumId) {
+      return res.status(400).json({ message: 'Either Song ID or Album ID is required' });
     }
   
     try {
-      const existingLike = await Like.findOne({ likedBy, song: songId });
+      let existingLike;
+      let likeData = { likedBy };
   
-      if (existingLike) {
-        return res.status(400).json({ message: 'Song already liked by user' });
+      if (songId) {
+        existingLike = await Like.findOne({ likedBy, song: songId });
+        likeData.song = songId;
+      } else if (albumId) {
+        existingLike = await Like.findOne({ likedBy, album: albumId });
+        likeData.album = albumId;
       }
   
-      const like = await Like.create({
-        likedBy,
-        song: songId,
-      });
+      if (existingLike) {
+        return res.status(400).json({ message: 'Already liked' });
+      }
+  
+      const like = await Like.create(likeData);
   
       res.status(201).json({
         success: true,
-        message: 'Song liked successfully',
+        message: `${songId ? 'Song' : 'Album'} liked successfully`,
         data: like,
       });
     } catch (error) {

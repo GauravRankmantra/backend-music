@@ -10,8 +10,12 @@ const likeSchema = new mongoose.Schema(
     },
     song: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+
       ref: 'Song'
+    },
+    album: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Album'
     }
   },
   { timestamps: true }
