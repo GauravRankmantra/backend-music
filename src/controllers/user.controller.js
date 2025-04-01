@@ -155,30 +155,48 @@ module.exports.getHistory = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
   try {
-    // Find the user by ID and get the songHistory field
     const user = await User.findById(userId).populate({
       path: 'songsHistory',
-      select: '_id title coverImage artist duration audioUrls', // Selecting only the required fields
+      select: '_id title coverImage artist duration audioUrls',
       populate: {
-        path: 'artist', // Populate the artist field (which is an ObjectId in Song model)
-        select: 'fullName' // Assuming 'fullName' is the field in the User model for the artist's name
-      }
+        path: 'artist',
+        select: 'fullName',
+      },
     });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Returning the history as a response
+    // Modify the artist field to be an object instead of an array
+    const modifiedSongsHistory = user.songsHistory.map((song) => {
+      let songObj = song.toObject(); // Convert to plain JavaScript object
+
+      if (songObj.artist && Array.isArray(songObj.artist) && songObj.artist.length > 0) {
+        songObj.artist = { fullName: songObj.artist[0].fullName || "Unknown Artist" };
+      } else if (songObj.artist && songObj.artist.fullName) {
+        songObj.artist = { fullName: songObj.artist.fullName };
+      } else {
+        songObj.artist = { fullName: "Unknown Artist" };
+      }
+      return songObj;
+    });
+
+    // Log the artist AFTER the modification
+    if (modifiedSongsHistory && modifiedSongsHistory.length > 0) {
+      console.log(modifiedSongsHistory[0].artist);
+    }
+
     res.status(200).json({
       success: true,
-      data: user.songsHistory
+      data: modifiedSongsHistory,
     });
   } catch (error) {
     console.error('Error fetching song history:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 });
+
 
 module.exports.changePassword = asyncHandler(async (req, res, next) => {
   const { newPassword, oldPassword } = req.body;
@@ -362,7 +380,7 @@ module.exports.verifyOtp = asyncHandler(async (req, res) => {
   validateUser.otp = undefined;
   validateUser.otpExpires = undefined;
   await validateUser.save();
-
+  console.log('After storing user in db : ', validateUser);
   return res.status(200).json({
     success: true,
     message: 'Otp validate success and password updated'
