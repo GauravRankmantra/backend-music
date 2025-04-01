@@ -302,8 +302,20 @@ module.exports.searchSong = asyncHandler(async (req, res) => {
     }
 
     const songs = await Song.find({
-      title: { $regex: query, $options: "i" }, // Case-insensitive search
-    });
+      title: { $regex: query, $options: "i" }, 
+    })
+      .populate({
+        path: "artist",
+        select: "fullName _id coverImage", // Fetch specific artist fields
+      })
+      .populate({
+        path: "album",
+        select: "_id title coverImage releaseDate", // Fetch specific album fields
+      })
+      .populate({
+        path: "genre",
+        select: "name _id", // Fetch genre name
+      });
 
     if (!songs || songs.length === 0) {
       return res.status(404).json({
@@ -320,7 +332,7 @@ module.exports.searchSong = asyncHandler(async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message || "An error occurred while searching for Song.",
+      message: error.message || "An error occurred while searching for songs.",
     });
   }
 });

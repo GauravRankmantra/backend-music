@@ -12,11 +12,12 @@ const songSchema = new mongoose.Schema(
       type: String,
       default: 0
     },
-    artist: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
+    artist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ],
     duration: {
       type: Number
     },
