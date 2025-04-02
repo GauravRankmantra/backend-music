@@ -11,40 +11,42 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const email = profile.emails ? profile.emails[0].value : null;
+        const email = profile.emails && profile.emails.length > 0 ? profile.emails[0].value : null;
+        if (!email) {
+          return done(new Error("Google login failed: No email found"), false);
+        }
 
         // Step 1: Check if user exists by googleId
         let user = await User.findOne({ googleId: profile.id });
 
         if (user) {
-          // If user already exists with googleId, authenticate and log them in
           return done(null, user);
         }
 
         // Step 2: Check if user exists by email
-        if (email) {
-          user = await User.findOne({ email });
+        user = await User.findOne({ email });
 
-          if (user) {
-            // If user exists by email, update their googleId and authenticate
-            user.googleId = profile.id; // Update their Google ID if it wasn't saved before
+        if (user) {
+          // If user exists but has no Google ID, link it
+          if (!user.googleId) {
+            user.googleId = profile.id;
             await user.save();
-            return done(null, user);
           }
+          return done(null, user);
         }
 
-        // Step 3: Create a new user if no user found by googleId or email
+        // Step 3: Create a new user if no user found
         const newUser = new User({
           fullName: profile.displayName,
-          email: email, // Use email if available
+          email: email,
           googleId: profile.id,
-          coverImage: profile.photos ? profile.photos[0].value : null, // Use Google profile picture if available
+          coverImage: profile.photos ? profile.photos[0].value : null,
         });
 
         const savedUser = await newUser.save();
-        return done(null, savedUser); // Authenticate the new user
+        return done(null, savedUser);
       } catch (err) {
-        return done(err, false); // Handle any errors
+        return done(err, false);
       }
     }
   )

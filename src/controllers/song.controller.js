@@ -324,6 +324,9 @@ module.exports.searchSong = asyncHandler(async (req, res) => {
       });
     }
 
+
+    
+
     res.status(200).json({
       success: true,
       message: `Found ${songs.length} Song(s) matching "${query}".`,

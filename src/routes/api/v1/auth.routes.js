@@ -22,6 +22,9 @@ const {
   checkToken
 } = require('../../../middlelwares/auth.middleware.js');
 
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const BACKEND_URL = process.env.BACKEND_URL;
+
 router.post('/login', authController.logIn);
 router.get(
   '/google',
@@ -48,7 +51,7 @@ router.get(
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.redirect('https://odgmusic.netlify.app/Oauth');
+    res.redirect(`${FRONTEND_URL}/Oauth`);
   }
 );
 
@@ -81,7 +84,7 @@ router.get(
       sameSite: 'none',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
-    res.redirect('https://odgmusic.netlify.app/Oauth');
+    res.redirect(`${FRONTEND_URL}/Oauth`);
     //   `${process.env.FRONTEND_URL}/profile?userId=${req.user._id}&name=${encodeURIComponent(req.user.fullName)}`
   }
 );

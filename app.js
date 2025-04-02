@@ -19,10 +19,12 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',  
     httpOnly: true,
+    sameSite: "none",
     maxAge: 24 * 60 * 60 * 1000 
   }
 }));
 app.use(passport.initialize());
+app.use(passport.session());
 app.use(express.static('public'));
 const allowedDomains = [
   'http://localhost:5173',

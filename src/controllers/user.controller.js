@@ -160,46 +160,98 @@ module.exports.getHistory = asyncHandler(async (req, res) => {
       select: '_id title coverImage artist duration audioUrls',
       populate: {
         path: 'artist',
-        select: 'fullName',
-      },
+        select: 'fullName'
+      }
     });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Modify the artist field to be an object instead of an array
-    const modifiedSongsHistory = user.songsHistory.map((song) => {
-      let songObj = song.toObject(); // Convert to plain JavaScript object
-
-      if (songObj.artist && Array.isArray(songObj.artist) && songObj.artist.length > 0) {
-        songObj.artist = { fullName: songObj.artist[0].fullName || "Unknown Artist" };
-      } else if (songObj.artist && songObj.artist.fullName) {
-        songObj.artist = { fullName: songObj.artist.fullName };
-      } else {
-        songObj.artist = { fullName: "Unknown Artist" };
-      }
-      return songObj;
-    });
-
-    // Log the artist AFTER the modification
-    if (modifiedSongsHistory && modifiedSongsHistory.length > 0) {
-      console.log(modifiedSongsHistory[0].artist);
-    }
-
     res.status(200).json({
       success: true,
-      data: modifiedSongsHistory,
+      data: user.songsHistory
     });
   } catch (error) {
     console.error('Error fetching song history:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 });
+module.exports.checkEmail = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  console.log(email);
 
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Please provide an email" });
+  }
+
+  try {
+    const user = await User.findOne({ email: email }); // Await the query
+
+    if (!user) {
+      return res.status(200).json({ success: true, message: "New email", data: { exists: false } });
+    }
+
+    return res.status(200).json({
+      success: false,
+      message: "This email is already registered, login instead.",
+      data: { exists: true },
+    });
+
+  } catch (error) {
+    console.error("Error checking email:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+module.exports.getOtp = asyncHandler(async (req, res) => {
+  const {email}=req.body
+  const otp = crypto.randomInt(100000, 999999).toString();
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    // Email options
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Password Reset OTP',
+      text: `Your OTP for password reset is ${otp}. It will expire in 2 minutes.`
+    };
+
+    // Send the email
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return res.status(500).json({
+          success: false,
+          message: 'Error sending email',
+          error: error.message
+        });
+      }
+
+      // Successfully sent email
+      return res.status(200).json({
+        success: true,
+        message: 'OTP sent to your email',
+        data:{otp:otp}
+      });
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Something went wrong. Please try again later.',
+      error: error.message
+    });
+  }
+});
 
 module.exports.changePassword = asyncHandler(async (req, res, next) => {
   const { newPassword, oldPassword } = req.body;
+  console.log(newPassword, oldPassword);
 
   const user = req.user;
 

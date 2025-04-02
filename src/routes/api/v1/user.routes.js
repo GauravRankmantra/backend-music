@@ -19,7 +19,7 @@ router.post(
   userController.registerUser
 );
 
-router.patch('/changepass', auth, userController.changePassword);
+router.post('/changepass', auth, userController.changePassword);
 router.put(
   '/update',
   auth,
@@ -35,6 +35,8 @@ router.post('/forgetPass', userController.forgetPassword);
 router.post('/verifyOtp', userController.verifyOtp);
 router.get('/gethistory',auth,userController.getHistory)
 router.post('/addHistory',auth,userController.addHistory)
+router.post("/check-email",userController.checkEmail)
+router.post("/get-otp",userController.getOtp)
 
 router.get("/getPurchasedSong",auth,userController.getPurchasedSong)
 router.get('/featuredArtists', userController.featuredArtists);
