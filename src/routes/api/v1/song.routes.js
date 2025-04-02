@@ -28,6 +28,7 @@ router.get('/top15', songController.getWeeklyTop15);
 router.get("/songs-uploaded-this-week",songController.thisWeekTotalSongUploded)
 router.get("/new-release",songController.getNewReleaseSong);
 router.get('/search',songController.searchSong)
+router.get('/:id',songController.getSongInfo)
 router.get("/genre/:name",songController.getSongByGenre)
 router.get("/isPurchased/:songId",auth,songController.isPurchased)
 router.put(

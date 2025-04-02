@@ -5,6 +5,7 @@ const Genre = require('../models/genre.model.js');
 const { uploadFile } = require('../services/cloudinary.js');
 const { findByIdAndUpdate } = require('../models/user.model.js');
 const moment = require('moment');
+const mongoose =require("mongoose")
 
 // function formatDuration(duration) {
 //   if (duration < 10) {
@@ -336,6 +337,93 @@ module.exports.searchSong = asyncHandler(async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || "An error occurred while searching for songs.",
+    });
+  }
+});
+module.exports.getSongInfo = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const song = await Song.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(id) },
+      },
+      {
+        $lookup: {
+          from: "albums", // Collection name of the Album model
+          localField: "album",
+          foreignField: "_id",
+          as: "albumDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$albumDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "users", 
+          localField: "artist",
+          foreignField: "_id",
+          as: "artistDetails",
+        },
+      },
+      {
+        $lookup: {
+          from: "genres", 
+          localField: "genre",
+          foreignField: "_id",
+          as: "genreDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$genreDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          rank: 1,
+          duration: 1,
+          price: 1,
+          freeDownload: 1,
+          audioUrls: 1,
+          coverImage: 1,
+          genre: 1,
+          plays: 1,
+          audioUrls:1,
+          isPublished: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          album: "$albumDetails",
+          artist: "$artistDetails",
+          genre:"$genreDetails"
+        },
+      },
+    ]);
+
+    if (song && song.length > 0) {
+      res.status(200).json({
+        success: true,
+        data: song[0],
+        message: "Song details retrieved successfully.",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Song not found.",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error. Could not retrieve song details.",
+      error: error.message,
     });
   }
 });
