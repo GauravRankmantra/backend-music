@@ -93,7 +93,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
     const detail = await Album.aggregate([
       // Step 1: Match the album by its ID
       { $match: { _id: albumId } },
-
+  
       // Step 2: Populate artist and genre
       {
         $lookup: {
@@ -111,7 +111,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           as: 'genreDetails'
         }
       },
-
+  
       // Step 3: Join with songs collection to get album's songs
       {
         $lookup: {
@@ -122,7 +122,12 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
         }
       },
 
-      // Step 4: Join with comments collection to get album's comments
+      {
+        $unwind: {
+          path: '$songs',
+          preserveNullAndEmptyArrays: true // Keeps albums even if they have no songs
+        }
+      },
       {
         $lookup: {
           from: 'comments',
@@ -131,22 +136,43 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           as: 'comments'
         }
       },
-
-      // Step 5: Add new fields (totalSongs and totalDuration)
+      {
+        $lookup: {
+          from: 'users', // Assuming 'users' is the collection for artists
+          localField: 'songs.artist', // 'artist' is an array of ObjectId in Song
+          foreignField: '_id',
+          as: 'songs.artistDetails'
+        }
+      },
+  
+      // Step 4: Regroup songs back into an array after unwinding
+      {
+        $group: {
+          _id: '$_id',
+          albumTitle: { $first: '$title' },
+          coverImage: { $first: '$coverImage' },
+          releaseDate: { $first: '$releaseDate' },
+          company: { $first: '$company' },
+          artistDetails: { $first: '$artistDetails' },
+          genreDetails: { $first: '$genreDetails' },
+          comments: { $first: '$comments' },
+          songs: { $push: '$songs' } // Reconstruct the songs array after unwinding
+        }
+      },
+  
+      // Step 5: Add totalSongs and totalDuration
       {
         $addFields: {
           totalSongs: { $size: '$songs' }, // Counting number of songs
-          totalDuration: {
-            $sum: '$songs.duration' // Summing up duration of all songs
-          }
+          totalDuration: { $sum: '$songs.duration' } // Summing up duration of all songs
         }
       },
-
-      // Step 6: Unwind artist and genre (since they are in arrays after $lookup)
-      { $unwind: '$artistDetails' },
-      { $unwind: '$genreDetails' },
-
-      // Step 7: Modify songs array to include artist's full name in each song
+  
+      // Step 6: Unwind artist and genre arrays properly
+      { $unwind: { path: '$artistDetails', preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: '$genreDetails', preserveNullAndEmptyArrays: true } },
+  
+      // Step 7: Modify songs array to include artist details properly
       {
         $addFields: {
           songs: {
@@ -155,15 +181,23 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
               as: 'song',
               in: {
                 $mergeObjects: [
-                  '$$song', // include all original song fields
-                  { artist: '$artistDetails.fullName' } // add artist's full name
+                  '$$song', // Include all original song fields
+                  {
+                    artist: {
+                      $map: {
+                        input: '$$song.artistDetails',
+                        as: 'artist',
+                        in: '$$artist.fullName'
+                      }
+                    }
+                  } // Map artistDetails into artist names array
                 ]
               }
             }
           }
         }
       },
-
+  
       // Step 8: Select only the fields we need
       {
         $project: {
@@ -173,27 +207,27 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           releaseDate: 1,
           coverImage: 1,
           artistDetails: 1,
-          artist: '$artistDetails.fullName', 
+          artist: '$artistDetails.fullName',
           genreDetails: 1,
-          songs: 1, 
+          songs: 1,
           comments: 1,
           totalSongs: 1,
           totalDuration: 1
         }
       }
     ]);
-
-
+  
     // Check if album is found
     if (!detail || detail.length === 0) {
       return res.status(200).json({ message: 'No Album found' });
     }
-
+  
     // Return the album details (first item in the array)
     return res.status(200).json({ success: true, data: detail[0] });
   } catch (error) {
     return res.status(500).json({ message: 'failed', error });
   }
+  
 });
 
 module.exports.searchAlbums = asyncHandler(async (req, res) => {

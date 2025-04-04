@@ -25,6 +25,10 @@ const planSchema = new mongoose.Schema(
     price: {
       type: Number,
       required: true
+    },
+    quality: {
+      type: Boolean,
+      default: false
     }
   },
   { timestamps: true }

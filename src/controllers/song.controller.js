@@ -54,10 +54,24 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     coverImageUrl = coverImageFile ? coverImageFile.secure_url : '';
   }
 
+  // Ensure artist is an array of valid ObjectIds
+  let artistArray = [];
+  if (body.artists) {
+    try {
+      artistArray = JSON.parse(body.artists); // Expecting artists to be sent as a JSON string
+      if (!Array.isArray(artistArray)) throw new Error();
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid artists format. It should be an array of ObjectIds."
+      });
+    }
+  }
+
   // Prepare the data to be saved in the Song model
   const newSong = new Song({
     title: body.title,
-    artist: body.artist,
+    artist: artistArray, // Now expecting an array of ObjectIds
     duration:
       lowAudioUrl.duration >= 60
         ? lowAudioUrl.duration / 60
@@ -66,13 +80,13 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       low: lowUrl,
       high: highUrl
     },
-    album: body.album ? body.album : null,
+    album: body.album || null,
     coverImage: coverImageUrl,
     genre: body.genre,
-    freeDownload:body.freeDownload,
-    price:body.price,
-    plays: 0, // Optional: Can be dynamically set or start from 0
-    isPublished: body.isPublished || true // Default to true
+    freeDownload: body.freeDownload === 'true', // Ensure it's a boolean
+    price: parseFloat(body.price) || 0, // Convert to number safely
+    plays: 0, // Default plays count
+    isPublished: body.isPublished !== 'false' // Default true unless explicitly set to false
   });
 
   // Save the song in the database
@@ -85,6 +99,7 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     song: newSong
   });
 });
+
 
 module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
   try {
@@ -172,15 +187,14 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
 
     // Base query
     let baseQuery = Song.find()
-      .populate('artist', 'fullName')
+      .populate('artist', 'fullName _id') // Populate artists array with fullName and _id
       .populate('album', 'title');
- 
 
     // Search functionality
     if (search) {
       baseQuery = baseQuery.or([
         { title: { $regex: search, $options: 'i' } },
-        { 'artist.fullName': { $regex: search, $options: 'i' } },
+        { 'artist.fullName': { $regex: search, $options: 'i' } }, // Search within artists array
         { 'album.title': { $regex: search, $options: 'i' } }
       ]);
     }
@@ -192,7 +206,7 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
     const dataQuery = baseQuery
       .skip(skip)
       .limit(parsedLimit)
-      .select('title coverImage duration artist album')
+      .select('title coverImage duration artist album') // Include artists in select
       .lean();
 
     // Execute both queries in parallel
@@ -202,7 +216,7 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
     const formattedSongs = songs.map((song) => ({
       ...song,
       duration: song.duration,
-      artist: song.artist ? { fullName: song.artist.fullName } : null,
+      artist: song.artist ? song.artist.map(artist => ({ fullName: artist.fullName, _id: artist._id })) : [], // Format artists array
       album: song.album ? { title: song.album.title } : null
     }));
 
