@@ -13,6 +13,7 @@ const playlistRouter=require("./playlist.router.js")
 const adminRouter = require("./admin.router.js")
 const trafficRouter=require("./traffic.router.js")
 const likeRouter=require("./like.router.js")
+const paymentRouter = require("./payment.router.js")
 
 let trafficData = {};
 
@@ -48,6 +49,7 @@ router.use("/traffic", (req, res) => {
 
 
 router.use("/user",userRouter)
+router.use("/payment",paymentRouter)
 router.use("/playlist",playlistRouter)
 router.use("/like",likeRouter)
 router.use("/home",homeRouter)

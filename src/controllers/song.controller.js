@@ -1,11 +1,11 @@
 const { asyncHandler } = require('../utils/asyncHandler.js');
 const Song = require('../models/song.model.js');
-const User = require("../models/user.model.js")
+const User = require('../models/user.model.js');
 const Genre = require('../models/genre.model.js');
 const { uploadFile } = require('../services/cloudinary.js');
 const { findByIdAndUpdate } = require('../models/user.model.js');
 const moment = require('moment');
-const mongoose =require("mongoose")
+const mongoose = require('mongoose');
 
 // function formatDuration(duration) {
 //   if (duration < 10) {
@@ -21,7 +21,6 @@ const mongoose =require("mongoose")
 //     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 //   }
 // }
-
 
 module.exports.uploadSong = asyncHandler(async (req, res) => {
   const { body, files } = req;
@@ -63,7 +62,7 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     } catch (error) {
       return res.status(400).json({
         success: false,
-        message: "Invalid artists format. It should be an array of ObjectIds."
+        message: 'Invalid artists format. It should be an array of ObjectIds.'
       });
     }
   }
@@ -99,7 +98,6 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     song: newSong
   });
 });
-
 
 module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
   try {
@@ -141,7 +139,9 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
           isPublished: 1,
           createdAt: 1,
           updatedAt: 1,
-          duration:1,
+          duration: 1,
+          freeDownload: 1,
+          price: 1,
 
           artist: '$artistInfo.fullName',
           genre: '$genreInfo.name',
@@ -162,7 +162,6 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
         message: 'No songs found.'
       });
     }
-
 
     res.status(200).json({
       success: true,
@@ -216,7 +215,12 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
     const formattedSongs = songs.map((song) => ({
       ...song,
       duration: song.duration,
-      artist: song.artist ? song.artist.map(artist => ({ fullName: artist.fullName, _id: artist._id })) : [], // Format artists array
+      artist: song.artist
+        ? song.artist.map((artist) => ({
+            fullName: artist.fullName,
+            _id: artist._id
+          }))
+        : [], // Format artists array
       album: song.album ? { title: song.album.title } : null
     }));
 
@@ -291,7 +295,6 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
 
     // Map through the results and format the duration
 
-
     res.status(200).json({
       success: true,
       count: latestSongs.length,
@@ -312,45 +315,42 @@ module.exports.searchSong = asyncHandler(async (req, res) => {
     if (!query) {
       return res.status(400).json({
         success: false,
-        message: "Search query is required",
+        message: 'Search query is required'
       });
     }
 
     const songs = await Song.find({
-      title: { $regex: query, $options: "i" }, 
+      title: { $regex: query, $options: 'i' }
     })
       .populate({
-        path: "artist",
-        select: "fullName _id coverImage", // Fetch specific artist fields
+        path: 'artist',
+        select: 'fullName _id coverImage' // Fetch specific artist fields
       })
       .populate({
-        path: "album",
-        select: "_id title coverImage releaseDate", // Fetch specific album fields
+        path: 'album',
+        select: '_id title coverImage releaseDate' // Fetch specific album fields
       })
       .populate({
-        path: "genre",
-        select: "name _id", // Fetch genre name
+        path: 'genre',
+        select: 'name _id' // Fetch genre name
       });
 
     if (!songs || songs.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No Song found matching your search.",
+        message: 'No Song found matching your search.'
       });
     }
-
-
-    
 
     res.status(200).json({
       success: true,
       message: `Found ${songs.length} Song(s) matching "${query}".`,
-      data: songs,
+      data: songs
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message || "An error occurred while searching for songs.",
+      message: error.message || 'An error occurred while searching for songs.'
     });
   }
 });
@@ -358,45 +358,46 @@ module.exports.getSongInfo = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
+    console.log("Fetching song with ID:", id);
     const song = await Song.aggregate([
       {
-        $match: { _id: new mongoose.Types.ObjectId(id) },
+        $match: { _id: new mongoose.Types.ObjectId(id) }
       },
       {
         $lookup: {
-          from: "albums", // Collection name of the Album model
-          localField: "album",
-          foreignField: "_id",
-          as: "albumDetails",
-        },
+          from: 'albums', // Collection name of the Album model
+          localField: 'album',
+          foreignField: '_id',
+          as: 'albumDetails'
+        }
       },
       {
         $unwind: {
-          path: "$albumDetails",
-          preserveNullAndEmptyArrays: true,
-        },
+          path: '$albumDetails',
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $lookup: {
-          from: "users", 
-          localField: "artist",
-          foreignField: "_id",
-          as: "artistDetails",
-        },
+          from: 'users',
+          localField: 'artist',
+          foreignField: '_id',
+          as: 'artistDetails'
+        }
       },
       {
         $lookup: {
-          from: "genres", 
-          localField: "genre",
-          foreignField: "_id",
-          as: "genreDetails",
-        },
+          from: 'genres',
+          localField: 'genre',
+          foreignField: '_id',
+          as: 'genreDetails'
+        }
       },
       {
         $unwind: {
-          path: "$genreDetails",
-          preserveNullAndEmptyArrays: true,
-        },
+          path: '$genreDetails',
+          preserveNullAndEmptyArrays: true
+        }
       },
       {
         $project: {
@@ -410,34 +411,34 @@ module.exports.getSongInfo = asyncHandler(async (req, res) => {
           coverImage: 1,
           genre: 1,
           plays: 1,
-          audioUrls:1,
+          audioUrls: 1,
           isPublished: 1,
           createdAt: 1,
           updatedAt: 1,
-          album: "$albumDetails",
-          artist: "$artistDetails",
-          genre:"$genreDetails"
-        },
-      },
+          album: '$albumDetails',
+          artist: '$artistDetails',
+          genre: '$genreDetails'
+        }
+      }
     ]);
 
     if (song && song.length > 0) {
       res.status(200).json({
         success: true,
         data: song[0],
-        message: "Song details retrieved successfully.",
+        message: 'Song details retrieved successfully.'
       });
     } else {
       res.status(404).json({
         success: false,
-        message: "Song not found.",
+        message: 'Song not found.'
       });
     }
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Server error. Could not retrieve song details.",
-      error: error.message,
+      message: 'Server error. Could not retrieve song details.',
+      error: error.message
     });
   }
 });
@@ -453,17 +454,19 @@ module.exports.getSongByGenre = asyncHandler(async (req, res) => {
     }
 
     // Find songs by genre id
-    const songs = await Song.find({ genre: genre._id }).populate({
-      path: 'artist',
-      select: 'fullName', // Select only the fullName field
-    }).select('-album')
+    const songs = await Song.find({ genre: genre._id })
+      .populate({
+        path: 'artist',
+        select: 'fullName' // Select only the fullName field
+      })
+      .select('-album');
 
     return res.json({ songs });
   } catch (error) {
     return res.status(500).json({ message: 'Server error', error });
   }
 });
-module.exports.isPurchased=asyncHandler(async(req,res)=>{
+module.exports.isPurchased = asyncHandler(async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     const isPurchased = user.purchasedSongs.includes(req.params.songId);
@@ -471,8 +474,7 @@ module.exports.isPurchased=asyncHandler(async(req,res)=>{
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
-})
-
+});
 
 module.exports.deleteSong = asyncHandler(async (req, res) => {
   const user = req.user;
