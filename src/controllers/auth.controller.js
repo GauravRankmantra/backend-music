@@ -100,6 +100,7 @@ module.exports.googleCallback = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
+    domain: '.odgmusic.com',
     maxAge: 24 * 60 * 60 * 1000
   });
 
@@ -107,6 +108,7 @@ module.exports.googleCallback = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
+    domain: '.odgmusic.com',
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 
@@ -136,8 +138,9 @@ module.exports.logOut = asyncHandler(async (req, res, next) => {
 
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'none',
+    domain: '.odgmusic.com',
     path: '/'
   };
 
