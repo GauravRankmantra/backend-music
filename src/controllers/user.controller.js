@@ -157,7 +157,7 @@ module.exports.getHistory = asyncHandler(async (req, res) => {
   try {
     const user = await User.findById(userId).populate({
       path: 'songsHistory',
-      select: '_id title coverImage artist duration audioUrls',
+      select: '_id title price freeDownload coverImage artist duration audioUrls',
       populate: {
         path: 'artist',
         select: 'fullName'

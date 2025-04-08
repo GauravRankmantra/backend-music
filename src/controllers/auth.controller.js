@@ -98,17 +98,15 @@ module.exports.googleCallback = asyncHandler(async (req, res) => {
 
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    domain: '.odgmusic.com',
+    secure: isProduction,             // true only in production
+    sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-origin, 'lax' for local dev
     maxAge: 24 * 60 * 60 * 1000
   });
-
+  
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    domain: '.odgmusic.com',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 
@@ -145,8 +143,8 @@ module.exports.logOut = asyncHandler(async (req, res, next) => {
   };
 
   res
-    .clearCookie('accessToken', cookieOptions)
-    .clearCookie('refreshToken', cookieOptions);
+    .clearCookie('accessToken')
+    .clearCookie('refreshToken');
 
   return res.status(200).json({
     success: true,

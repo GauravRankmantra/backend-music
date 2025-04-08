@@ -476,6 +476,31 @@ module.exports.isPurchased = asyncHandler(async (req, res) => {
   }
 });
 
+module.exports.incresePlayCont = asyncHandler(async (req, res) => {
+  const { id } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ success: false, message: "Song ID is required" });
+  }
+
+  const song = await Song.findByIdAndUpdate(
+    id,
+    { $inc: { plays: 1 } },
+    { new: true }
+  );
+
+  if (!song) {
+    return res.status(404).json({ success: false, message: "Song not found" });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Play count increased",
+    plays: song.plays
+  });
+});
+
+
 module.exports.deleteSong = asyncHandler(async (req, res) => {
   const user = req.user;
   const { id } = req.params;

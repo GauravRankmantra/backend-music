@@ -102,6 +102,8 @@ module.exports.addLike = asyncHandler(async (req, res) => {
           $project: {
             _id: "$song._id",
             title: "$song.title",
+            price: "$song.price",
+            freeDownload: "$song.freeDownload",
             coverImage: "$song.coverImage",
             audioUrls: "$song.audioUrls",
             duration: "$song.duration",

@@ -40,15 +40,15 @@ router.get(
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProduction,             // true only in production
+      sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-origin, 'lax' for local dev
       maxAge: 24 * 60 * 60 * 1000
     });
-
+    
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -74,15 +74,15 @@ router.get(
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: 'none',
+      secure: isProduction,             // true only in production
+      sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-origin, 'lax' for local dev
       maxAge: 24 * 60 * 60 * 1000
     });
-
+    
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'none',
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
     res.redirect(`${FRONTEND_URL}/Oauth`);
