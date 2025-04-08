@@ -71,14 +71,14 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
     secure: true,
-    sameSite: "none",
+    sameSite: 'none',
     maxAge: 24 * 60 * 60 * 1000
   });
 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: true,
-    sameSite:  'none',
+    sameSite: 'none',
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -138,6 +138,7 @@ module.exports.logOut = asyncHandler(async (req, res, next) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'none',
+    path: '/'
   };
 
   res
@@ -149,7 +150,6 @@ module.exports.logOut = asyncHandler(async (req, res, next) => {
     message: 'User logged out successfully'
   });
 });
-
 
 module.exports.refreshToken = asyncHandler(async (req, res, next) => {
   const { refreshToken } = req.cookies;
