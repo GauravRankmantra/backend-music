@@ -123,7 +123,6 @@ module.exports.getUserProfile = asyncHandler(async (req, res) => {
 
   return res.status(200).json({ success: true, user: user });
 });
-
 module.exports.logOut = asyncHandler(async (req, res, next) => {
   const user = req.user;
   if (!user) {
@@ -135,12 +134,22 @@ module.exports.logOut = asyncHandler(async (req, res, next) => {
 
   await User.findByIdAndUpdate(user._id, { refreshToken: '' });
 
-  res.clearCookie('accessToken').clearCookie('refreshToken');
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none',
+  };
+
+  res
+    .clearCookie('accessToken', cookieOptions)
+    .clearCookie('refreshToken', cookieOptions);
+
   return res.status(200).json({
     success: true,
     message: 'User logged out successfully'
   });
 });
+
 
 module.exports.refreshToken = asyncHandler(async (req, res, next) => {
   const { refreshToken } = req.cookies;
