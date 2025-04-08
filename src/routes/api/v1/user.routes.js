@@ -29,6 +29,7 @@ router.put(
 router.get('/artist', userController.getAllArtist);
 
 router.get('/new-users',userController.newUsers)
+router.post('/addPurchaseSong',auth,userController.addPurchaseSong)
 router.get('/artist/search',userController.getArtistSearch);
 router.get('/search',userController.searchArtist)
 router.post('/forgetPass', userController.forgetPassword);

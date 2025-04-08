@@ -2,6 +2,7 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const authController = require('../../../controllers/auth.controller.js');
+const isProduction = process.env.NODE_ENV === 'production';
 const generateTokens = async (user, res) => {
   try {
     const accessToken = await user.generateAccessToken();
@@ -39,15 +40,15 @@ router.get(
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000
     });
-
+    
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -73,15 +74,15 @@ router.get(
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000
     });
-
+    
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
     res.redirect(`${FRONTEND_URL}/Oauth`);

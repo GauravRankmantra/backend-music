@@ -67,22 +67,19 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
   const { accessToken, refreshToken } = await generateTokens(user);
 
   // res.setHeader('Authorization', `Bearer ${accessToken}`);
-  // res.setHeader('x-refresh-token', refreshToken);
 
-  // Set the access token as a cookie
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
-    secure: isProduction,  
-    sameSite: isProduction ? 'none' : 'lax',  
-    maxAge: 24 * 60 * 60 * 1000 
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000
   });
-  
 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: isProduction,  
-    sameSite: isProduction ? 'none' : 'lax',  
-    maxAge: 7 * 24 * 60 * 60 * 1000  
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000
   });
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
