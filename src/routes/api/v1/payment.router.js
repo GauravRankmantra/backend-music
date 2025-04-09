@@ -37,8 +37,8 @@ router.post('/create-checkout-session', async (req, res) => {
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
-      success_url: `http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:5173/purchased?id=${encodeURIComponent(products[0]._id)}`,
+      success_url: `https://odgmusic.com/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://odgmusic.com/purchased?id=${encodeURIComponent(products[0]._id)}`,
       metadata: {
         songId: products[0]._id,
         album: products[0]?.album?.title || products[0]?.albumInfo?.title || "Unknown"
