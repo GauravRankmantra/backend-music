@@ -32,6 +32,8 @@ const allowedDomains = [
   'http://localhost:5175',
   'http://localhost:3000',
   'https://odgmusic.com',
+  'https://odgmusic.com/admin',
+  'https://odgmusic.com/admin/forms/basic-form',
   'https://odgmusic.netlify.app',
   'https://adminpanelmusic.netlify.app'
   
