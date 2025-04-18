@@ -70,15 +70,15 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
 
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000
   });
 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -214,11 +214,11 @@ module.exports.logOut = asyncHandler(async (req, res, next) => {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
-    domain: '.odgmusic.com',
     path: '/'
   };
 
-  res.clearCookie('accessToken').clearCookie('refreshToken');
+  res.clearCookie('accessToken', cookieOptions);
+  res.clearCookie('refreshToken', cookieOptions);
 
   return res.status(200).json({
     success: true,

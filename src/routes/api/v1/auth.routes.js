@@ -41,11 +41,11 @@ router.get(
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: isProduction,             // true only in production
+      secure: isProduction, // true only in production
       sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-origin, 'lax' for local dev
       maxAge: 24 * 60 * 60 * 1000
     });
-    
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
@@ -75,15 +75,17 @@ router.get(
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: isProduction,             // true only in production
+      secure: isProduction, // true only in production
       sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-origin, 'lax' for local dev
+      path: '/',
       maxAge: 24 * 60 * 60 * 1000
     });
-    
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
     res.redirect(`${FRONTEND_URL}/Oauth`);
