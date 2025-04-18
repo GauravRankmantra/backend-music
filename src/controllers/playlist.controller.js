@@ -7,10 +7,10 @@ const mongoose = require("mongoose")
 
 // Get Playlist by ID with song details
 module.exports.getPlaylistById = asyncHandler(async (req, res) => {
-  const { playlistId } = req.params;
+  const { id } = req.params;
 
   // Find the playlist and populate song details
-  const playlist = await Playlist.findById(playlistId)
+  const playlist = await Playlist.findById(id)
     .populate({
       path: 'songs',
       model: 'Song',
@@ -63,6 +63,47 @@ module.exports.getPlaylistByUserId = asyncHandler(async (req, res) => {
     success: true,
     data: playlistsWithTotalSongs
   });
+});
+
+module.exports.getTopPlaylist = asyncHandler(async (req, res) => {
+
+  try {
+    const playlists = await Playlist.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'owner',
+          foreignField: '_id',
+          as: 'owner'
+        }
+      },
+      {
+        $unwind: '$owner'
+      },
+      {
+        $lookup: {
+          from: 'songs',
+          localField: 'songs',
+          foreignField: '_id',
+          as: 'songs'
+        }
+      },
+      {
+        $sort: { createdAt: -1 } // Optional: sort by newest playlists
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: 'Top playlists retrieved successfully.',
+      data: playlists
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Error while fetching the playlists',
+      error
+    });
+  }
 });
 
 // Get Playlists by User's fullName

@@ -92,17 +92,93 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
     }
   });
 });
+module.exports.AdminLogIn = asyncHandler(async (req, res, next) => {
+  const { email = '', userName = '', password = '' } = req.body;
+
+  if ((!email && !userName) || !password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Username or Email and Password are required.'
+    });
+  }
+
+  const trimmedEmail = email.trim();
+  const trimmedUserName = userName.trim().toLowerCase();
+
+  if (trimmedEmail && !validator.isEmail(trimmedEmail)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Enter a valid email.'
+    });
+  }
+
+  // Find user by email OR username
+  const user = await User.findOne({
+    $or: [{ email: trimmedEmail }, { userName: trimmedUserName }]
+  });
+
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid credentials.'
+    });
+  }
+
+  // Validate password
+  const isPasswordValid = await user.validatePassword(password);
+  if (!isPasswordValid) {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid credentials.'
+    });
+  }
+  if (user.role != 'admin') {
+    return res.status(401).json({
+      success: false,
+      message: 'Only Admin are allowed '
+    });
+  }
+
+  // Generate Access & Refresh Tokens
+  const { accessToken, refreshToken } = await generateTokens(user);
+
+  // res.setHeader('Authorization', `Bearer ${accessToken}`);
+
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 24 * 60 * 60 * 1000
+  });
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  return res.status(200).json({
+    success: true,
+    message: 'User Logged in Successfully',
+    user: {
+      ...user.toObject(),
+      password: undefined
+    }
+  });
+});
 module.exports.googleCallback = asyncHandler(async (req, res) => {
   // Successful Google login, generate JWT tokens
   const { accessToken, refreshToken } = await generateTokens(req.user, res);
 
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
-    secure: isProduction,             // true only in production
+    secure: isProduction, // true only in production
     sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-origin, 'lax' for local dev
     maxAge: 24 * 60 * 60 * 1000
   });
-  
+
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: isProduction,
@@ -142,9 +218,7 @@ module.exports.logOut = asyncHandler(async (req, res, next) => {
     path: '/'
   };
 
-  res
-    .clearCookie('accessToken')
-    .clearCookie('refreshToken');
+  res.clearCookie('accessToken').clearCookie('refreshToken');
 
   return res.status(200).json({
     success: true,

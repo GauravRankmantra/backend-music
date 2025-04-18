@@ -27,6 +27,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL;
 const BACKEND_URL = process.env.BACKEND_URL;
 
 router.post('/login', authController.logIn);
+router.post('/adminlogin', authController.AdminLogIn);
 router.get(
   '/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
