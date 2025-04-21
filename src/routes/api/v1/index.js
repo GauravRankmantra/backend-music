@@ -1,6 +1,7 @@
 const express=require("express");
 const router=express.Router();
 
+
 const userRouter=require("./user.routes.js")
 const authRouter=require("./auth.routes.js")
 const songRouter = require("./song.routes.js")
@@ -14,6 +15,9 @@ const adminRouter = require("./admin.router.js")
 const trafficRouter=require("./traffic.router.js")
 const likeRouter=require("./like.router.js")
 const paymentRouter = require("./payment.router.js")
+const contactRouter=require("./contact.router.js")
+const privacyRouter=require("./privacyPolicy.router.js")
+const termsRouter = require("./terms.router.js")
 
 let trafficData = {};
 
@@ -60,5 +64,11 @@ router.use("/albums",albumRouter)
 router.use("/plan",planRouter)
 router.use("/admin",adminRouter)
 router.use("/traffic",trafficRouter)
+router.use("/contact",contactRouter)
+router.use("/privacy",privacyRouter)
+router.use("/terms",termsRouter)
+
+
+
 
 module.exports=router;
