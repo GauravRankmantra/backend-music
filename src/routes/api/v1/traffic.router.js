@@ -12,37 +12,55 @@ const getToday = () => {
   });
 };
 
-// Route to handle traffic
+
+
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const today = getToday(); // Get today's date in 'dd MMM' format
-
     try {
-      // Find the traffic data for today
-      let traffic = await Traffic.findOne({ day: today });
+      const today = moment().startOf('day');
+      const lastWeek = moment().subtract(6, 'days').startOf('day');
 
-      // If no record exists for today, create a new record with totalVisits = 1
-      if (!traffic) {
-        traffic = new Traffic({ day: today, totalVisits: 1 });
-      } else {
-        // Increment the totalVisits if record already exists
-        traffic.totalVisits += 1;
-      }
+      const trafficData = await Traffic.find({
+        dayDate: { $gte: lastWeek.toDate(), $lte: today.toDate() },
+      }).sort({ dayDate: 1 }); // Ascending order for charting
 
-      // Save the updated traffic data
-      await traffic.save();
+      console.log("trafficData",trafficData)
 
-      // Fetch all traffic data sorted by day (most recent first)
-      const trafficData = await Traffic.find().sort({ day: -1 });
-
-      // Send the traffic data as a response
       res.status(200).json({ data: trafficData });
     } catch (error) {
-      console.error('Error saving traffic data:', error);
+      console.error('Error fetching traffic data:', error);
       res.status(500).json({ message: 'Internal server error', error });
     }
   })
 );
+
+
+
+
+router.post(
+  '/',
+  asyncHandler(async (req, res) => {
+    const today = moment().format('YYYY-MM-DD'); // use ISO format for consistency
+
+    try {
+      let traffic = await Traffic.findOne({ day: today });
+
+      if (!traffic) {
+        traffic = new Traffic({ day: today, totalVisits: 1 });
+      } else {
+        traffic.totalVisits += 1;
+      }
+
+      await traffic.save();
+
+      res.status(200).json({ success: true, message: 'Traffic updated.' });
+    } catch (error) {
+      console.error('Error updating traffic:', error);
+      res.status(500).json({ success: false, message: 'Failed to update traffic' });
+    }
+  })
+);
+
 
 module.exports = router;

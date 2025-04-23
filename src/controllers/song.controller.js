@@ -7,6 +7,7 @@ const { findByIdAndUpdate } = require('../models/user.model.js');
 const moment = require('moment');
 const mongoose = require('mongoose');
 
+
 // function formatDuration(duration) {
 //   if (duration < 10) {
 //     // Assume the value is in minutes
@@ -99,11 +100,11 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
+module.exports.top15 = asyncHandler(async (req, res) => {
   try {
     const top15 = await Song.aggregate([
       {
-        $sort: { plays: -1 }
+        $sort: { plays: -1 } // Sort directly by plays descending
       },
       {
         $limit: 15 // Limit to top 15 songs
@@ -176,6 +177,152 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
   }
 });
 
+module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
+  try {
+    // Get start of this week (Sunday) and now
+    const startOfWeek = moment().startOf('week').toDate();
+    const now = new Date();
+
+    // First, try fetching top 15 from **this week's uploads**
+    let top15 = await Song.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startOfWeek, $lte: now }
+        }
+      },
+      {
+        $sort: { plays: -1 }
+      },
+      {
+        $group: {
+          _id: { title: "$title", artist: "$artist" },
+          doc: { $first: "$$ROOT" }
+        }
+      },
+      { $replaceRoot: { newRoot: "$doc" } },
+      { $limit: 15 },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'artist',
+          foreignField: '_id',
+          as: 'artistInfo'
+        }
+      },
+      { $unwind: '$artistInfo' },
+      {
+        $lookup: {
+          from: 'genres',
+          localField: 'genre',
+          foreignField: '_id',
+          as: 'genreInfo'
+        }
+      },
+      { $unwind: '$genreInfo' },
+      {
+        $project: {
+          audioUrls: 1,
+          title: 1,
+          coverImage: 1,
+          plays: 1,
+          isPublished: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          duration: 1,
+          freeDownload: 1,
+          price: 1,
+          artist: '$artistInfo.fullName',
+          genre: '$genreInfo.name',
+          rank: {
+            $cond: {
+              if: { $eq: [{ $type: '$rank' }, 'missing'] },
+              then: 0,
+              else: '$rank'
+            }
+          }
+        }
+      }
+    ]);
+
+    // Fallback if no weekly uploads found
+    if (!top15 || top15.length === 0) {
+      top15 = await Song.aggregate([
+        {
+          $sort: { plays: -1 }
+        },
+        {
+          $group: {
+            _id: { title: "$title", artist: "$artist" },
+            doc: { $first: "$$ROOT" }
+          }
+        },
+        { $replaceRoot: { newRoot: "$doc" } },
+        { $limit: 15 },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'artist',
+            foreignField: '_id',
+            as: 'artistInfo'
+          }
+        },
+        { $unwind: '$artistInfo' },
+        {
+          $lookup: {
+            from: 'genres',
+            localField: 'genre',
+            foreignField: '_id',
+            as: 'genreInfo'
+          }
+        },
+        { $unwind: '$genreInfo' },
+        {
+          $project: {
+            audioUrls: 1,
+            title: 1,
+            coverImage: 1,
+            plays: 1,
+            isPublished: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            duration: 1,
+            freeDownload: 1,
+            price: 1,
+            artist: '$artistInfo.fullName',
+            genre: '$genreInfo.name',
+            rank: {
+              $cond: {
+                if: { $eq: [{ $type: '$rank' }, 'missing'] },
+                then: 0,
+                else: '$rank'
+              }
+            }
+          }
+        }
+      ]);
+    }
+
+    if (!top15 || top15.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No songs found.'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Top 15 songs retrieved successfully.',
+      data: top15
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'An error occurred while retrieving songs.'
+    });
+  }
+});
+
+
 module.exports.getAllSongs = asyncHandler(async (req, res) => {
   const { search, page = 1, limit = 10 } = req.query;
   try {
@@ -238,6 +385,7 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
     });
   }
 });
+
 
 module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
   try {
