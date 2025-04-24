@@ -204,28 +204,44 @@ module.exports.checkEmail = asyncHandler(async (req, res) => {
   }
 });
 module.exports.getOtp = asyncHandler(async (req, res) => {
-  const {email}=req.body
+  const { email } = req.body;
   const otp = crypto.randomInt(100000, 999999).toString();
+
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: true, // Use true for port 465
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       }
-    });
+    })
 
-    // Email options
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: `"ODG Music Support" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Password Reset OTP',
-      text: `Your OTP for password reset is ${otp}. It will expire in 2 minutes.`
+      subject: 'Your OTP Code from ODG Music',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #4F46E5;">Your OTP Code</h2>
+          <p>Hello,</p>
+          <p>Use the following OTP to complete your request:</p>
+          <h3 style="background: #f4f4f4; padding: 10px; display: inline-block; letter-spacing: 2px;">${otp}</h3>
+          <p>This OTP will expire in <strong>2 minutes</strong>.</p>
+          <p>If you didn’t request this, you can safely ignore this email.</p>
+          <hr style="margin: 30px 0;">
+          <small>ODG Music Team | ${process.env.EMAIL_USER}</small>
+        </div>
+      `
     };
+    
+    
 
     // Send the email
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
+        console.error("Email send error:", error);
         return res.status(500).json({
           success: false,
           message: 'Error sending email',
@@ -233,18 +249,18 @@ module.exports.getOtp = asyncHandler(async (req, res) => {
         });
       }
 
-      // Successfully sent email
+      console.log("Email sent:", info);
       return res.status(200).json({
         success: true,
         message: 'OTP sent to your email',
-        data:{otp:otp}
+        data: { otp }
       });
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: 'Something went wrong. Please try again later.',
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -609,7 +625,7 @@ module.exports.getArtistSearch = asyncHandler(async (req, res) => {
 });
 
 module.exports.getArtistDetail = asyncHandler(async (req, res) => {
-  const id = req.params.id; // Make sure to destructure the id correctly from params
+  const id = req.params.id;
   const artistId = new mongoose.Types.ObjectId(id.trim());
   if (!id)
     return res.status(400).json({ success: false, message: 'No id provided' });
@@ -624,7 +640,38 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
           from: 'songs', // Collection name of the songs
           localField: '_id', // Artist ID in the User collection
           foreignField: 'artist', // Artist ID in the Song collection
-          as: 'songs' // Output field for matching songs
+          as: 'songs', // Output field for matching songs
+          pipeline: [ // Add a pipeline to the songs lookup
+            {
+              $lookup: {
+                from: 'users', // Collection name of the users (artists)
+                localField: 'artist', // Artist ID in the Song document
+                foreignField: '_id', // User ID in the User document
+                as: 'artistDetails' // Output field for artist details
+              }
+            },
+            {
+              $unwind: '$artistDetails' // Deconstruct the artistDetails array
+            },
+            {
+              $project: {
+                _id: 1,
+                title: 1,
+                rank: 1,
+                duration: 1,
+                album: 1,
+                audioUrls: 1,
+                coverImage: 1,
+                genre: 1,
+                plays: 1,
+                isPublished: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                __v: 1,
+                artist: '$artistDetails.fullName' // Rename and keep only fullName
+              }
+            }
+          ]
         }
       }
     ]);
