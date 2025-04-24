@@ -21,9 +21,7 @@ router.get(
       const today = moment().startOf('day');
       const lastWeek = moment().subtract(6, 'days').startOf('day');
 
-      const trafficData = await Traffic.find({
-        dayDate: { $gte: lastWeek.toDate(), $lte: today.toDate() },
-      }).sort({ dayDate: 1 }); // Ascending order for charting
+      const trafficData = await Traffic.find() // Ascending order for charting
 
       console.log("trafficData",trafficData)
 

@@ -668,7 +668,7 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
                 createdAt: 1,
                 updatedAt: 1,
                 __v: 1,
-                artist: '$artistDetails.fullName' // Rename and keep only fullName
+                artist: '$artistDetails.fullName' 
               }
             }
           ]
