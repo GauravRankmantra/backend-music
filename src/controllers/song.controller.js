@@ -7,7 +7,6 @@ const { findByIdAndUpdate } = require('../models/user.model.js');
 const moment = require('moment');
 const mongoose = require('mongoose');
 
-
 // function formatDuration(duration) {
 //   if (duration < 10) {
 //     // Assume the value is in minutes
@@ -91,12 +90,78 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
 
   // Save the song in the database
   await newSong.save();
+  const songId = new mongoose.Types.ObjectId(newSong._id);
+
+  const populatedSong = await Song.aggregate([
+    { $match: { _id: songId } },
+
+    // Lookup artist details
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'artist',
+        foreignField: '_id',
+        as: 'artistDetails'
+      }
+    },
+
+    // Lookup genre details
+    {
+      $lookup: {
+        from: 'genres',
+        localField: 'genre',
+        foreignField: '_id',
+        as: 'genreDetails'
+      }
+    },
+
+    // Unwind genre if needed (optional, if you only expect one genre)
+    {
+      $unwind: {
+        path: '$genreDetails',
+        preserveNullAndEmptyArrays: true
+      }
+    },
+
+    // Optional: Map artistDetails to just names (if needed)
+    {
+      $addFields: {
+        artistNames: {
+          $map: {
+            input: '$artistDetails',
+            as: 'artist',
+            in: '$$artist.fullName'
+          }
+        }
+      }
+    },
+
+    // Optional: Choose which fields to return
+    {
+      $project: {
+        _id: 1,
+        title: 1,
+        duration: 1,
+        audioUrls: 1,
+        album: 1,
+        coverImage: 1,
+        genreDetails: 1,
+        artistDetails: 1,
+        artistNames: 1,
+        freeDownload: 1,
+        price: 1,
+        plays: 1,
+        isPublished: 1,
+        createdAt: 1
+      }
+    }
+  ]);
 
   // Send the response back
   res.status(201).json({
     success: true,
     message: 'Song uploaded successfully!',
-    song: newSong
+    song: populatedSong[0]
   });
 });
 
@@ -179,85 +244,15 @@ module.exports.top15 = asyncHandler(async (req, res) => {
 
 module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
   try {
-    // Get start of this week (Sunday) and now
     const startOfWeek = moment().startOf('week').toDate();
     const now = new Date();
 
-    // First, try fetching top 15 from **this week's uploads**
-    let top15 = await Song.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startOfWeek, $lte: now }
-        }
-      },
-      {
-        $sort: { plays: -1 }
-      },
-      {
-        $group: {
-          _id: { title: "$title", artist: "$artist" },
-          doc: { $first: "$$ROOT" }
-        }
-      },
-      { $replaceRoot: { newRoot: "$doc" } },
-      { $limit: 15 },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'artist',
-          foreignField: '_id',
-          as: 'artistInfo'
-        }
-      },
-      { $unwind: '$artistInfo' },
-      {
-        $lookup: {
-          from: 'genres',
-          localField: 'genre',
-          foreignField: '_id',
-          as: 'genreInfo'
-        }
-      },
-      { $unwind: '$genreInfo' },
-      {
-        $project: {
-          audioUrls: 1,
-          title: 1,
-          coverImage: 1,
-          plays: 1,
-          isPublished: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          duration: 1,
-          freeDownload: 1,
-          price: 1,
-          artist: '$artistInfo.fullName',
-          genre: '$genreInfo.name',
-          rank: {
-            $cond: {
-              if: { $eq: [{ $type: '$rank' }, 'missing'] },
-              then: 0,
-              else: '$rank'
-            }
-          }
-        }
-      }
-    ]);
-
-    // Fallback if no weekly uploads found
-    if (!top15 || top15.length === 0) {
-      top15 = await Song.aggregate([
+    // Helper function for enriching songs (lookup artists/genres, etc.)
+    const enrichSongs = async (songs) => {
+      const enriched = await Song.aggregate([
         {
-          $sort: { plays: -1 }
+          $match: { _id: { $in: songs.map((song) => song._id) } }
         },
-        {
-          $group: {
-            _id: { title: "$title", artist: "$artist" },
-            doc: { $first: "$$ROOT" }
-          }
-        },
-        { $replaceRoot: { newRoot: "$doc" } },
-        { $limit: 15 },
         {
           $lookup: {
             from: 'users',
@@ -266,7 +261,6 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
             as: 'artistInfo'
           }
         },
-        { $unwind: '$artistInfo' },
         {
           $lookup: {
             from: 'genres',
@@ -275,7 +269,7 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
             as: 'genreInfo'
           }
         },
-        { $unwind: '$genreInfo' },
+        { $unwind: { path: '$genreInfo', preserveNullAndEmptyArrays: true } },
         {
           $project: {
             audioUrls: 1,
@@ -288,7 +282,13 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
             duration: 1,
             freeDownload: 1,
             price: 1,
-            artist: '$artistInfo.fullName',
+            artist: {
+              $map: {
+                input: '$artistInfo',
+                as: 'a',
+                in: '$$a.fullName'
+              }
+            },
             genre: '$genreInfo.name',
             rank: {
               $cond: {
@@ -300,9 +300,95 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
           }
         }
       ]);
+      // Maintain original sort order
+      return songs.map((s) =>
+        enriched.find((e) => e._id.toString() === s._id.toString())
+      );
+    };
+
+    // Get weekly top songs (deduped by title + artist)
+    const weeklySongs = await Song.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startOfWeek, $lte: now }
+        }
+      },
+      {
+        $sort: { plays: -1 }
+      },
+      {
+        $group: {
+          _id: {
+            title: '$title',
+            artist: '$artist'
+          },
+          doc: { $first: '$$ROOT' }
+        }
+      },
+      {
+        $replaceRoot: { newRoot: '$doc' }
+      },
+      {
+        $limit: 15
+      }
+    ]);
+
+    // If we already have 15, enrich and return
+    if (weeklySongs.length === 15) {
+      const result = await enrichSongs(weeklySongs);
+      return res.status(200).json({
+        success: true,
+        message: 'Top 15 songs retrieved successfully.',
+        data: result
+      });
     }
 
-    if (!top15 || top15.length === 0) {
+    // Else fetch remaining from all time, excluding already picked
+    const existingKeys = new Set(
+      weeklySongs.map((song) => `${song.title}-${song.artist.sort().join(',')}`)
+    );
+
+    const needed = 15 - weeklySongs.length;
+
+    const fallbackSongs = await Song.aggregate([
+      {
+        $sort: { plays: -1 }
+      },
+      {
+        $group: {
+          _id: {
+            title: '$title',
+            artist: '$artist'
+          },
+          doc: { $first: '$$ROOT' }
+        }
+      },
+      {
+        $replaceRoot: { newRoot: '$doc' }
+      }
+    ]);
+
+    // Filter out duplicates already included in weekly
+    const uniqueFallback = [];
+    for (const song of fallbackSongs) {
+      const artistArray = Array.isArray(song.artist)
+        ? song.artist
+        : [song.artist];
+      const key = `${song.title}-${artistArray.map(String).sort().join(',')}`;
+
+      if (!existingKeys.has(key)) {
+        uniqueFallback.push(song);
+        existingKeys.add(key);
+      }
+      if (uniqueFallback.length === needed) break;
+    }
+
+    const finalTop15 = [...weeklySongs, ...uniqueFallback].sort(
+      (a, b) => b.plays - a.plays
+    );
+    const enrichedFinal = await enrichSongs(finalTop15);
+
+    if (!enrichedFinal || enrichedFinal.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'No songs found.'
@@ -312,7 +398,7 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Top 15 songs retrieved successfully.',
-      data: top15
+      data: enrichedFinal
     });
   } catch (error) {
     res.status(500).json({
@@ -321,7 +407,6 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
     });
   }
 });
-
 
 module.exports.getAllSongs = asyncHandler(async (req, res) => {
   const { search, page = 1, limit = 10 } = req.query;
@@ -386,12 +471,14 @@ module.exports.getAllSongs = asyncHandler(async (req, res) => {
   }
 });
 
-
 module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
   try {
-    const latestSongs = await Song.aggregate([
+    const allSongs = await Song.aggregate([
       {
         $match: { isPublished: true }
+      },
+      {
+        $sort: { createdAt: -1 }
       },
       {
         $lookup: {
@@ -401,7 +488,6 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
           as: 'artistDetails'
         }
       },
-      { $unwind: '$artistDetails' },
       {
         $lookup: {
           from: 'genres',
@@ -410,7 +496,7 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
           as: 'genreDetails'
         }
       },
-      { $unwind: '$genreDetails' },
+      { $unwind: { path: '$genreDetails', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'albums',
@@ -422,14 +508,24 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
       {
         $unwind: { path: '$albumDetails', preserveNullAndEmptyArrays: true }
       },
-      { $sort: { createdAt: -1 } },
-      { $limit: 10 },
       {
         $project: {
           _id: 1,
           title: 1,
           rank: 1,
-          artistDetails: 1,
+          artist: 1,
+          artistDetails: {
+            $map: {
+              input: '$artistDetails',
+              as: 'a',
+              in: {
+                _id: '$$a._id',
+                fullName: '$$a.fullName',
+                avatar: '$$a.avatar',
+                email: '$$a.email'
+              }
+            }
+          },
           albumDetails: 1,
           genreDetails: 1,
           duration: 1,
@@ -441,12 +537,26 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
       }
     ]);
 
-    // Map through the results and format the duration
+    // Deduplicate by title + sorted artist array
+    const seen = new Set();
+    const uniqueSongs = [];
+
+    for (const song of allSongs) {
+      const artistArray = Array.isArray(song.artist) ? song.artist : [song.artist];
+      const key = `${song.title}-${artistArray.map(String).sort().join(',')}`;
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueSongs.push(song);
+      }
+
+      if (uniqueSongs.length === 10) break;
+    }
 
     res.status(200).json({
       success: true,
-      count: latestSongs.length,
-      data: latestSongs
+      count: uniqueSongs.length,
+      data: uniqueSongs
     });
   } catch (error) {
     res.status(500).json({
@@ -456,6 +566,7 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
     });
   }
 });
+
 module.exports.searchSong = asyncHandler(async (req, res) => {
   try {
     const { query } = req.query;
@@ -506,7 +617,7 @@ module.exports.getSongInfo = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-    console.log("Fetching song with ID:", id);
+    console.log('Fetching song with ID:', id);
     const song = await Song.aggregate([
       {
         $match: { _id: new mongoose.Types.ObjectId(id) }
@@ -628,7 +739,9 @@ module.exports.incresePlayCont = asyncHandler(async (req, res) => {
   const { id } = req.body;
 
   if (!id) {
-    return res.status(400).json({ success: false, message: "Song ID is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: 'Song ID is required' });
   }
 
   const song = await Song.findByIdAndUpdate(
@@ -638,16 +751,15 @@ module.exports.incresePlayCont = asyncHandler(async (req, res) => {
   );
 
   if (!song) {
-    return res.status(404).json({ success: false, message: "Song not found" });
+    return res.status(404).json({ success: false, message: 'Song not found' });
   }
 
   res.status(200).json({
     success: true,
-    message: "Play count increased",
+    message: 'Play count increased',
     plays: song.plays
   });
 });
-
 
 module.exports.deleteSong = asyncHandler(async (req, res) => {
   const user = req.user;
