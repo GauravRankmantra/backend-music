@@ -1,64 +1,26 @@
 const express = require('express');
-const Traffic = require('../../../models/traffic.model'); // Import traffic model
-const { asyncHandler } = require('../../../utils/asyncHandler'); // Custom async handler utility
+const Traffic = require('../../../models/traffic.model.js'); // Import traffic model
+
 const router = express.Router();
+const trafficController =require("../../../controllers/traffic.controller.js")
 
 // Helper function to get today's date in 'dd MMM' format
-const getToday = () => {
-  const today = new Date();
-  return today.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-  });
-};
+router.get('/', trafficController.getTrafficStats);
+router.post('/log', trafficController.logTraffic);
 
 
+router.post('/dummy', async (req, res) => {
+  console.log("inside dummy")
+  try {
+ 
+    const { ip, userAgent, createdAt } = req.body;
+    await Traffic.create({ ip, userAgent, createdAt });
+    res.status(200).json({ success: true, message: 'Dummy traffic logged' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error logging dummy traffic',error:err });
+  }
+});
 
-router.get(
-  '/',
-  asyncHandler(async (req, res) => {
-    try {
-      const today = moment().startOf('day');
-      const lastWeek = moment().subtract(6, 'days').startOf('day');
-
-      const trafficData = await Traffic.find() // Ascending order for charting
-
-      console.log("trafficData",trafficData)
-
-      res.status(200).json({ data: trafficData });
-    } catch (error) {
-      console.error('Error fetching traffic data:', error);
-      res.status(500).json({ message: 'Internal server error', error });
-    }
-  })
-);
-
-
-
-
-router.post(
-  '/',
-  asyncHandler(async (req, res) => {
-    const today = moment().format('YYYY-MM-DD'); // use ISO format for consistency
-
-    try {
-      let traffic = await Traffic.findOne({ day: today });
-
-      if (!traffic) {
-        traffic = new Traffic({ day: today, totalVisits: 1 });
-      } else {
-        traffic.totalVisits += 1;
-      }
-
-      await traffic.save();
-
-      res.status(200).json({ success: true, message: 'Traffic updated.' });
-    } catch (error) {
-      console.error('Error updating traffic:', error);
-      res.status(500).json({ success: false, message: 'Failed to update traffic' });
-    }
-  })
-);
 
 
 module.exports = router;
