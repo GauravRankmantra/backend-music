@@ -157,7 +157,8 @@ module.exports.getHistory = asyncHandler(async (req, res) => {
   try {
     const user = await User.findById(userId).populate({
       path: 'songsHistory',
-      select: '_id title price freeDownload coverImage artist duration audioUrls',
+      select:
+        '_id title price freeDownload coverImage artist duration audioUrls',
       populate: {
         path: 'artist',
         select: 'fullName'
@@ -182,25 +183,30 @@ module.exports.checkEmail = asyncHandler(async (req, res) => {
   console.log(email);
 
   if (!email) {
-    return res.status(400).json({ success: false, message: "Please provide an email" });
+    return res
+      .status(400)
+      .json({ success: false, message: 'Please provide an email' });
   }
 
   try {
     const user = await User.findOne({ email: email }); // Await the query
 
     if (!user) {
-      return res.status(200).json({ success: true, message: "New email", data: { exists: false } });
+      return res
+        .status(200)
+        .json({ success: true, message: 'New email', data: { exists: false } });
     }
 
     return res.status(200).json({
       success: false,
-      message: "This email is already registered, login instead.",
-      data: { exists: true },
+      message: 'This email is already registered, login instead.',
+      data: { exists: true }
     });
-
   } catch (error) {
-    console.error("Error checking email:", error);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    console.error('Error checking email:', error);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Internal server error' });
   }
 });
 module.exports.getOtp = asyncHandler(async (req, res) => {
@@ -216,7 +222,7 @@ module.exports.getOtp = asyncHandler(async (req, res) => {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       }
-    })
+    });
 
     const mailOptions = {
       from: `"ODG Music Support" <${process.env.EMAIL_USER}>`,
@@ -235,13 +241,11 @@ module.exports.getOtp = asyncHandler(async (req, res) => {
         </div>
       `
     };
-    
-    
 
     // Send the email
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        console.error("Email send error:", error);
+        console.error('Email send error:', error);
         return res.status(500).json({
           success: false,
           message: 'Error sending email',
@@ -249,7 +253,7 @@ module.exports.getOtp = asyncHandler(async (req, res) => {
         });
       }
 
-      console.log("Email sent:", info);
+      console.log('Email sent:', info);
       return res.status(200).json({
         success: true,
         message: 'OTP sent to your email',
@@ -260,7 +264,7 @@ module.exports.getOtp = asyncHandler(async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Something went wrong. Please try again later.',
-      error: error.message,
+      error: error.message
     });
   }
 });
@@ -434,7 +438,7 @@ module.exports.addPurchaseSong = asyncHandler(async (req, res) => {
   const { songId } = req.body;
 
   if (!songId) {
-    return res.status(400).json({ message: "songId is required" });
+    return res.status(400).json({ message: 'songId is required' });
   }
 
   // Optional: check if song exists
@@ -445,17 +449,19 @@ module.exports.addPurchaseSong = asyncHandler(async (req, res) => {
 
   const user = await User.findById(userId);
   if (!user) {
-    return res.status(404).json({ message: "User not found" });
+    return res.status(404).json({ message: 'User not found' });
   }
 
   if (user.purchasedSongs.includes(songId)) {
-    return res.status(200).json({ message: "Song already purchased" });
+    return res.status(200).json({ message: 'Song already purchased' });
   }
 
   user.purchasedSongs.push(songId);
   await user.save();
 
-  res.status(200).json({ message: "Song successfully added to purchased list" });
+  res
+    .status(200)
+    .json({ message: 'Song successfully added to purchased list' });
 });
 module.exports.verifyOtp = asyncHandler(async (req, res) => {
   const { email, otp, newPassword } = req.body;
@@ -641,7 +647,8 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
           localField: '_id', // Artist ID in the User collection
           foreignField: 'artist', // Artist ID in the Song collection
           as: 'songs', // Output field for matching songs
-          pipeline: [ // Add a pipeline to the songs lookup
+          pipeline: [
+            // Add a pipeline to the songs lookup
             {
               $lookup: {
                 from: 'users', // Collection name of the users (artists)
@@ -668,7 +675,7 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
                 createdAt: 1,
                 updatedAt: 1,
                 __v: 1,
-                artist: '$artistDetails.fullName' 
+                artist: '$artistDetails.fullName'
               }
             }
           ]
@@ -690,3 +697,24 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
     });
   }
 });
+
+module.exports.searchUser = asyncHandler(async(req,res)=>{
+
+
+
+  const { query } = req.query;
+  if (!query || query.length < 3) {
+    return res.status(400).json({ message: "Search term too short" });
+  }
+
+  const regex = new RegExp(query, "i"); // case-insensitive match
+  const users = await User.find({
+    $or: [{ fullName: regex }, { email: regex }],
+  });
+
+  res.status(200).json({ users });
+
+
+
+
+})

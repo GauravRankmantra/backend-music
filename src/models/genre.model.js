@@ -11,6 +11,9 @@ const generSchema = new mongoose.Schema(
     },
     discription: {
       type: String
+    },
+    image: {
+      type: String
     }
   },
   { timestamps: true }

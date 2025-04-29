@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const User = require('../models/user.model.js');
 const Album = require('../models/album.model.js');
 const Song = require('../models/song.model.js');
+const Hero = require('../models/hero.model.js');
+const { uploadFile } = require('../services/cloudinary.js');
 
 module.exports.searchAll = asyncHandler(async (req, res) => {
   try {
@@ -48,7 +50,7 @@ module.exports.searchAll = asyncHandler(async (req, res) => {
             coverImage: 1,
             duration: 1,
             audioUrls: 1,
-            artist:"$artistInfo.fullName" 
+            artist: '$artistInfo.fullName'
           },
           albums: {
             _id: 1,
@@ -97,7 +99,7 @@ module.exports.searchAll = asyncHandler(async (req, res) => {
             duration: 1,
             coverImage: 1,
             audioUrls: 1,
-            artist:"$artistInfo.fullName" 
+            artist: '$artistInfo.fullName'
           }
         }
       }
@@ -134,7 +136,7 @@ module.exports.searchAll = asyncHandler(async (req, res) => {
           plays: 1,
           price: 1,
           freeDownload: 1,
-          artist:"$artistInfo.fullName", 
+          artist: '$artistInfo.fullName',
 
           audioUrls: 1,
           artistInfo: {
@@ -180,6 +182,74 @@ module.exports.searchAll = asyncHandler(async (req, res) => {
       success: false,
       message: 'An error occurred while searching. Please try again later.',
       error: error.message
+    });
+  }
+});
+
+module.exports.getHeroSection = asyncHandler(async (req, res) => {
+  try {
+    const data = await Hero.findById("6810713b0d930c8c24b1ccd2");
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ message: 'No data found', success: false });
+    }
+
+    return res
+      .status(200)
+      .json({ message: 'success', success: true, data: data });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || 'Failed to fetch hero section data',
+      success: false
+    });
+  }
+});
+module.exports.updateHeroSection = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const data = req.body;
+  const file = req.file;
+
+  if (!id) {
+    return res.status(400).json({ message: 'No id provided', success: false });
+  }
+
+  try {
+    // Handle coverImage upload if present
+    if (file) {
+      const filePath = file.path;
+      try {
+        const uploadedImage = await uploadFile(filePath); // Upload to Cloudinary
+        data.coverImage = uploadedImage?.secure_url || ''; // Set in request body for update
+      } catch (err) {
+        return res.status(500).json({
+          message: 'Error uploading cover image',
+          success: false,
+          error: err.message,
+        });
+      }
+    }
+
+    const updatedHero = await Hero.findByIdAndUpdate(
+      id,
+      data,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedHero) {
+      return res
+        .status(404)
+        .json({ message: 'Hero section not found', success: false });
+    }
+
+    res.status(200).json({
+      message: 'Hero section updated successfully',
+      success: true,
+      data: updatedHero,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || 'Failed to update hero section',
+      success: false,
     });
   }
 });
