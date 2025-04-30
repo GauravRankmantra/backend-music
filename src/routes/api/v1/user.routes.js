@@ -21,8 +21,7 @@ router.post(
 
 router.post('/changepass', auth, userController.changePassword);
 router.put(
-  '/update',
-  auth,
+  '/update/:id',
   upload.single('coverImage'),
   userController.updateUser
 );

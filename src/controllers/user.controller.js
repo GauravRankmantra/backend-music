@@ -302,8 +302,9 @@ module.exports.changePassword = asyncHandler(async (req, res, next) => {
   }
 });
 module.exports.updateUser = asyncHandler(async (req, res) => {
-  const id = req.params;
-  const { fullName, email, password } = req.params;
+  const id = req.params.id;
+  console.log(id)
+  const { fullName, email, password } = req.body;
   const file = req.file;
   let coverImageUrl = '';
 
@@ -320,7 +321,7 @@ module.exports.updateUser = asyncHandler(async (req, res) => {
     }
   }
 
-  const user = await User.findById(id);
+  const user = await User.findById(new mongoose.Types.ObjectId(id));
   if (!user)
     return res.status(404).json({ success: false, message: 'User not found' });
   if (fullName) user.fullName = fullName;
@@ -330,7 +331,7 @@ module.exports.updateUser = asyncHandler(async (req, res) => {
   await user.save();
   return res
     .status(200)
-    .json({ success: true, message: 'User created Successfully' });
+    .json({ success: true, message: ' Updated Successfully' });
 });
 module.exports.forgetPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;

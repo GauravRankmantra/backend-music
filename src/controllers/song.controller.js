@@ -167,13 +167,39 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
 
 module.exports.top15 = asyncHandler(async (req, res) => {
   try {
+
+    let topSongs = await Song.aggregate([
+      { $match: { plays: { $gt: 0 } } },
+      { $sort: { plays: -1 } },
+      { $limit: 15 }
+    ]);
+
+    const fetchedCount = topSongs.length;
+
+    // Step 2: If fewer than 15, fetch more random songs (excluding already fetched ones)
+    if (fetchedCount < 15) {
+      const existingIds = topSongs.map((song) => song._id);
+
+      const fillSongs = await Song.aggregate([
+        { $match: { _id: { $nin: existingIds } } },
+        { $sample: { size: 15 - fetchedCount } }
+      ]);
+
+      // Merge both sets
+      topSongs = [...topSongs, ...fillSongs];
+    }
+   
+
+    // Step 3: Lookup artist and genre info
     const top15 = await Song.aggregate([
       {
-        $sort: { plays: -1 } // Sort directly by plays descending
+        $match: {
+          _id: {
+            $in: topSongs.map((song) => new mongoose.Types.ObjectId(song._id))
+          }
+        }
       },
-      {
-        $limit: 15 // Limit to top 15 songs
-      },
+
       {
         $lookup: {
           from: 'users',
@@ -182,9 +208,7 @@ module.exports.top15 = asyncHandler(async (req, res) => {
           as: 'artistInfo'
         }
       },
-      {
-        $unwind: '$artistInfo'
-      },
+      { $unwind: { path: "$artistInfo", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'genres',
@@ -193,9 +217,7 @@ module.exports.top15 = asyncHandler(async (req, res) => {
           as: 'genreInfo'
         }
       },
-      {
-        $unwind: '$genreInfo'
-      },
+      { $unwind: { path: "$genreInfo", preserveNullAndEmptyArrays: true } },
       {
         $project: {
           audioUrls: 1,
@@ -208,8 +230,7 @@ module.exports.top15 = asyncHandler(async (req, res) => {
           duration: 1,
           freeDownload: 1,
           price: 1,
-
-          artist: '$artistInfo.fullName',
+          artist: '$artistInfo',
           genre: '$genreInfo.name',
           rank: {
             $cond: {
@@ -286,9 +307,13 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
               $map: {
                 input: '$artistInfo',
                 as: 'a',
-                in: '$$a.fullName'
+                in: {
+                  _id: '$$a._id',
+                  fullName: '$$a.fullName'
+                }
               }
             },
+            
             genre: '$genreInfo.name',
             rank: {
               $cond: {
@@ -542,7 +567,9 @@ module.exports.getNewReleaseSong = asyncHandler(async (req, res) => {
     const uniqueSongs = [];
 
     for (const song of allSongs) {
-      const artistArray = Array.isArray(song.artist) ? song.artist : [song.artist];
+      const artistArray = Array.isArray(song.artist)
+        ? song.artist
+        : [song.artist];
       const key = `${song.title}-${artistArray.map(String).sort().join(',')}`;
 
       if (!seen.has(key)) {
