@@ -435,7 +435,7 @@ module.exports.addComment = asyncHandler(async (req, res) => {
 
 module.exports.addAlbums = asyncHandler(async (req, res) => {
   const { title, artist, genre, company } = req.body;
-  if (!title || !artist || !genre || !company)
+  if (!title  || !genre || !company)
     return res
       .status(400)
       .json({ success: false, message: 'All fields are require ' });
