@@ -73,7 +73,8 @@ module.exports.searchAll = asyncHandler(async (req, res) => {
           as: 'artistInfo'
         }
       },
-      { $unwind: '$artistInfo' },
+
+      { $unwind: { path: "$artistInfo", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'songs',
@@ -116,7 +117,7 @@ module.exports.searchAll = asyncHandler(async (req, res) => {
           as: 'artistInfo'
         }
       },
-      { $unwind: '$artistInfo' },
+      { $unwind: { path: "$artistInfo", preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'albums',

@@ -4,6 +4,8 @@ const userController = require("../../../controllers/user.controller.js");
 
 //all user action's
 router.get("/users",userController.getAllUsers)
+router.get("/searchUser",userController.searchUser)
+
 
 router.put("/user/:id", userController.updateUser2); 
 router.delete("/user/:id",userController.deleteUser)

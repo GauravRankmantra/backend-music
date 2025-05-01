@@ -7,6 +7,29 @@ const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
+
+
+module.exports.searchUser=asyncHandler(async(req,res)=>{
+  const query = req.query.query?.toLowerCase();
+
+  if (!query || query.length < 3) {
+    return res.status(400).json({ message: 'Query too short' });
+  }
+
+  try {
+    const users = await User.find({
+      $or: [
+        { name: { $regex: query, $options: 'i' } },
+        { email: { $regex: query, $options: 'i' } }
+      ]
+    });
+
+    res.json({ users });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+})
+
 module.exports.registerUser = asyncHandler(async (req, res, next) => {
   const { body, files } = req;
   validateUser(req, res);
@@ -301,7 +324,7 @@ module.exports.changePassword = asyncHandler(async (req, res, next) => {
 });
 module.exports.updateUser = asyncHandler(async (req, res) => {
   const id = req.params.id;
-  console.log(id)
+  console.log(id);
   const { fullName, email, password } = req.body;
   const file = req.file;
   let coverImageUrl = '';
@@ -567,17 +590,23 @@ module.exports.updateUser2 = asyncHandler(async (req, res) => {
 
 module.exports.getAllUsers = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query; // default page 1, limit 10
+    const { page = 1, limit = 10, role } = req.query;
 
-    const users = await User.find() // Replace with your actual DB query
+    const query = {};
+    if (role) {
+      query.role = role; // dynamically add role filter
+    }
+
+    const users = await User.find(query)
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
-    const totalUsers = await User.countDocuments(); // Total number of users
+    const totalUsers = await User.countDocuments(query); // count based on filter
+
     res.json({
       totalUsers,
       totalPages: Math.ceil(totalUsers / limit),
-      currentPage: page,
+      currentPage: Number(page),
       users
     });
   } catch (error) {
@@ -697,23 +726,3 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports.searchUser = asyncHandler(async(req,res)=>{
-
-
-
-  const { query } = req.query;
-  if (!query || query.length < 3) {
-    return res.status(400).json({ message: "Search term too short" });
-  }
-
-  const regex = new RegExp(query, "i"); // case-insensitive match
-  const users = await User.find({
-    $or: [{ fullName: regex }, { email: regex }],
-  });
-
-  res.status(200).json({ users });
-
-
-
-
-})

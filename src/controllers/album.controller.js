@@ -378,7 +378,6 @@ module.exports.getAllAlbums = asyncHandler(async (req, res) => {
           as: 'artist'
         }
       },
-
       {
         $lookup: {
           from: 'songs',
@@ -387,11 +386,19 @@ module.exports.getAllAlbums = asyncHandler(async (req, res) => {
           as: 'songs'
         }
       },
-
       {
-        $unwind: '$artist'
+        $addFields: {
+          artist: {
+            $cond: [
+              { $gt: [{ $size: '$artist' }, 0] },
+              { $arrayElemAt: ['$artist', 0] },
+              { fullName: 'Unknown Artist', _id: null }
+            ]
+          }
+        }
       }
     ]);
+    
 
     if (!allAlbums || allAlbums.length === 0) {
       return res
