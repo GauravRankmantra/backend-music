@@ -3,6 +3,24 @@ const {asyncHandler} = require("../utils/asyncHandler.js")
 const mongoose = require("mongoose")
 const Song = require("../models/song.model.js")
 
+const formatDuration = (duration) => {
+  if (duration < 10) {
+    const minutes = Math.floor(duration);
+    const seconds = Math.round((duration - minutes) * 60);
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  } else {
+    // Assume duration is in seconds.
+    const totalSeconds = Math.round(duration);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  }
+};
+
 module.exports.addLike = asyncHandler(async (req, res) => {
     const { songId, albumId } = req.body;
     const likedBy = req.user?._id;
@@ -72,45 +90,53 @@ module.exports.addLike = asyncHandler(async (req, res) => {
     const skip = (page - 1) * limit;
   
     try {
+      // 1. Validate likedBy
+      if (!likedBy) {
+        return res.status(400).json({ message: 'User ID is required' });
+      }
+  
       const likedSongs = await Like.aggregate([
         { $match: { likedBy: new mongoose.Types.ObjectId(likedBy) } },
   
         // Join with the "songs" collection
         {
           $lookup: {
-            from: "songs",
-            localField: "song",
-            foreignField: "_id",
-            as: "song",
+            from: 'songs',
+            localField: 'song',
+            foreignField: '_id',
+            as: 'song',
           },
         },
-        { $unwind: "$song" }, // Convert array into a single object
+        { $unwind: '$song' }, // Convert array into a single object
   
         // Join with the "users" collection (for artist details)
         {
           $lookup: {
-            from: "users",
-            localField: "song.artist",
-            foreignField: "_id",
-            as: "song.artist",
+            from: 'users',
+            localField: 'song.artist',
+            foreignField: '_id',
+            as: 'song.artist',
           },
         },
-        { $unwind: "$song.artist" }, // Convert artist array into a single object
+        { $unwind: { path: '$song.artist', preserveNullAndEmptyArrays: true } }, // Convert artist array into a single object, handle missing artist
+  
   
         // Final structure projection
         {
           $project: {
-            _id: "$song._id",
-            title: "$song.title",
-            price: "$song.price",
-            freeDownload: "$song.freeDownload",
-            coverImage: "$song.coverImage",
-            audioUrls: "$song.audioUrls",
-            duration: "$song.duration",
+            _id: '$song._id',
+            title: '$song.title',
+            price: '$song.price',
+            freeDownload: '$song.freeDownload',
+            coverImage: '$song.coverImage',
+            audioUrls: '$song.audioUrls',
+            duration: '$song.duration',
             artist: {
-              _id: "$song.artist._id",
-              fullName: "$song.artist.fullName",
-              coverImage: "$song.artist.coverImage",
+              _id: '$song.artist._id',
+              fullName: {
+                  $ifNull: [ '$song.artist.fullName', 'Unknown Artist' ]
+              },
+              coverImage: '$song.artist.coverImage',
             },
             createdAt: 1,
           },
@@ -121,20 +147,32 @@ module.exports.addLike = asyncHandler(async (req, res) => {
         { $limit: limit },
       ]);
   
+      // 2.  Check if likedSongs array has valid data
+      const hasValidSongs = likedSongs.every(like => like._id);
+  
+      if (!hasValidSongs && likedSongs.length > 0) {
+        return res.status(404).json({ message: 'No songs found in likes' });
+      }
+  
       // Count total liked songs
       const totalLikes = await Like.countDocuments({ likedBy });
+      const formattedLikedSongs = likedSongs.map(song => ({
+        ...song,
+        duration: formatDuration(song.duration), // Format the duration
+      }));
   
       res.status(200).json({
         success: true,
-        data: likedSongs, // Returning an array of songs
+        data: formattedLikedSongs,
         totalPages: Math.ceil(totalLikes / limit),
         currentPage: page,
       });
     } catch (error) {
-      console.error("Error getting liked songs:", error);
-      res.status(500).json({ message: "Internal server error", error: error.message });
+      console.error('Error getting liked songs:', error);
+      res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   });
+  
   
   module.exports.getSongLikesCount = asyncHandler(async(req, res)=>{
       const {songId} = req.params;

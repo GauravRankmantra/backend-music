@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema(
       },
       trim: true
     },
-    
+
     role: {
       type: String,
       enum: ['user', 'artist', 'admin'],
@@ -92,6 +92,49 @@ const userSchema = new mongoose.Schema(
         index: true
       }
     ],
+    activityStats: [
+      {
+        date: { type: Date, required: true },
+        minutesSpent: { type: Number, default: 0 },
+        songsPlayed: { type: Number, default: 0 },
+        downloads: { type: Number, default: 0 }
+      }
+    ],
+    facebook: {
+      type: String,
+      default: ''
+    },
+    instagram: {
+      type: String,
+      default: ''
+    },
+    twitter: {
+      type: String,
+      default: ''
+    },
+    favArtist: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User'
+      }
+    ],
+    topGenre: [
+      {
+        genre: {
+          type: mongoose.Schema.ObjectId,
+          ref: 'Genre'
+        },
+        plays: Number
+      }
+    ],
+    allTimeSong: [
+      {
+        song: { type: mongoose.Schema.ObjectId, ref: 'Song' },
+        date: { type: Date, required: true },
+        plays: Number
+      }
+    ],
+
     googleId: { type: String, unique: true, sparse: true },
     facebookId: { type: String, unique: true, sparse: true },
     profileColor: {
@@ -105,19 +148,16 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔒 Pre-save Hook: Hash Password Before Saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-// 🔑 Validate Password
 userSchema.methods.validatePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-// 🎫 Generate Access Token
 userSchema.methods.generateAccessToken = async function () {
   return jwt.sign(
     { _id: this._id, role: this.role },

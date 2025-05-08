@@ -6,6 +6,7 @@ const { uploadFile } = require('../services/cloudinary.js');
 const { findByIdAndUpdate } = require('../models/user.model.js');
 const moment = require('moment');
 const mongoose = require('mongoose');
+const formatDuration = require('../utils/formateDuration.js');
 
 // function formatDuration(duration) {
 //   if (duration < 10) {
@@ -66,15 +67,12 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       });
     }
   }
-
+  const durationfix = formatDuration(lowAudioUrl.duration);
   // Prepare the data to be saved in the Song model
   const newSong = new Song({
     title: body.title,
     artist: artistArray, // Now expecting an array of ObjectIds
-    duration:
-      lowAudioUrl.duration >= 60
-        ? lowAudioUrl.duration / 60
-        : lowAudioUrl.duration,
+    duration: durationfix,
     audioUrls: {
       low: lowUrl,
       high: highUrl
@@ -167,7 +165,6 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
 
 module.exports.top15 = asyncHandler(async (req, res) => {
   try {
-
     let topSongs = await Song.aggregate([
       { $match: { plays: { $gt: 0 } } },
       { $sort: { plays: -1 } },
@@ -188,7 +185,6 @@ module.exports.top15 = asyncHandler(async (req, res) => {
       // Merge both sets
       topSongs = [...topSongs, ...fillSongs];
     }
-   
 
     // Step 3: Lookup artist and genre info
     const top15 = await Song.aggregate([
@@ -208,7 +204,7 @@ module.exports.top15 = asyncHandler(async (req, res) => {
           as: 'artistInfo'
         }
       },
-      { $unwind: { path: "$artistInfo", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: '$artistInfo', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'genres',
@@ -217,7 +213,7 @@ module.exports.top15 = asyncHandler(async (req, res) => {
           as: 'genreInfo'
         }
       },
-      { $unwind: { path: "$genreInfo", preserveNullAndEmptyArrays: true } },
+      { $unwind: { path: '$genreInfo', preserveNullAndEmptyArrays: true } },
       {
         $project: {
           audioUrls: 1,
@@ -313,7 +309,7 @@ module.exports.getWeeklyTop15 = asyncHandler(async (req, res) => {
                 }
               }
             },
-            
+
             genre: '$genreInfo.name',
             rank: {
               $cond: {

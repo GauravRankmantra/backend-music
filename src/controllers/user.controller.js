@@ -7,9 +7,7 @@ const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
-
-
-module.exports.searchUser=asyncHandler(async(req,res)=>{
+module.exports.searchUser = asyncHandler(async (req, res) => {
   const query = req.query.query?.toLowerCase();
 
   if (!query || query.length < 3) {
@@ -28,7 +26,7 @@ module.exports.searchUser=asyncHandler(async(req,res)=>{
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
-})
+});
 
 module.exports.registerUser = asyncHandler(async (req, res, next) => {
   const { body, files } = req;
@@ -149,28 +147,71 @@ module.exports.addHistory = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Song not found' });
   }
 
-  // Check if the song is already in the user's history
+  const genreExist =
+    user.topGenre && user.topGenre.length > 0
+      ? user.topGenre.some(
+          (entry) => entry.genre && entry.genre.toString() == song.genre
+        )
+      : false;
+
+  console.log('song genre', song.genre);
+  console.log('top genre', user.topGenre[0].genre);
+  console.log(genreExist)
+
+  if (genreExist) {
+    const songToUpdate = user.topGenre.find(
+      (entry) => entry.genre && entry.genre.toString() === song.genre
+    );
+
+    if (songToUpdate) {
+      songToUpdate.plays = (songToUpdate.plays || 0) + 1;
+
+      await user.save();
+    }
+  } else {
+    user.topGenre.push({ genre: song.genre, date: Date.now(), plays: 1 });
+    await user.save();
+  }
+
+  const songExistsInAllTime =
+    user.allTimeSong && user.allTimeSong.length > 0
+      ? user.allTimeSong.some(
+          (entry) => entry.song && entry.song.toString() === songId
+        )
+      : false;
+  if (songExistsInAllTime) {
+    const songToUpdate = user.allTimeSong.find(
+      (entry) => entry.song && entry.song.toString() === songId
+    );
+
+    if (songToUpdate) {
+      songToUpdate.plays = (songToUpdate.plays || 0) + 1;
+
+      await user.save();
+    }
+  } else {
+    user.allTimeSong.push({ song: songId, date: Date.now(), plays: 1 });
+    await user.save();
+  }
+
   const songExistsInHistory =
     user.songsHistory && user.songsHistory.length > 0
       ? user.songsHistory.some((entry) => entry.toString() === songId)
       : false;
 
   if (!songExistsInHistory) {
-    // Add the song to the user's history
     user.songsHistory.push(songId);
 
-    // Limit the history to the last 10 songs
     if (user.songsHistory.length > 10) {
-      user.songsHistory.shift(); // Remove the oldest entry if history exceeds 10 songs
+      user.songsHistory.shift();
     }
-
-    // Save the updated user
-    await user.save();
   }
+
+  await user.save();
 
   // Send a success response
   res.status(200).json({
-    message: 'Song added to history',
+    message: 'Song added to history & allTime',
     history: user.history
   });
 });
@@ -725,4 +766,3 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
     });
   }
 });
-

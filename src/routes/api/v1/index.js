@@ -18,6 +18,7 @@ const paymentRouter = require("./payment.router.js")
 const contactRouter=require("./contact.router.js")
 const privacyRouter=require("./privacyPolicy.router.js")
 const termsRouter = require("./terms.router.js")
+const userDashbordRouter =require("./userDashbord.router.js")
 
 
 
@@ -26,6 +27,7 @@ const termsRouter = require("./terms.router.js")
 
 
 router.use("/user",userRouter)
+router.use("/userDashbord",userDashbordRouter)
 router.use("/payment",paymentRouter)
 router.use("/playlist",playlistRouter)
 router.use("/like",likeRouter)
@@ -40,6 +42,7 @@ router.use("/traffic",trafficRouter)
 router.use("/contact",contactRouter)
 router.use("/privacy",privacyRouter)
 router.use("/terms",termsRouter)
+
 
 
 
