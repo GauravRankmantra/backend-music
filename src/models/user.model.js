@@ -112,6 +112,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    phoneNumber: {
+      type: String,
+      default: ''
+    },
+    address: {
+      type: String,
+      default: ''
+    },
     favArtist: [
       {
         type: mongoose.Schema.ObjectId,

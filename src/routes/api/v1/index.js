@@ -19,6 +19,7 @@ const contactRouter=require("./contact.router.js")
 const privacyRouter=require("./privacyPolicy.router.js")
 const termsRouter = require("./terms.router.js")
 const userDashbordRouter =require("./userDashbord.router.js")
+const webUpdateRouter = require("./webUpdate.router.js")
 
 
 
@@ -42,7 +43,7 @@ router.use("/traffic",trafficRouter)
 router.use("/contact",contactRouter)
 router.use("/privacy",privacyRouter)
 router.use("/terms",termsRouter)
-
+router.use("/web",webUpdateRouter)
 
 
 

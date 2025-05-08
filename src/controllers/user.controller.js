@@ -6,6 +6,7 @@ const { uploadFile } = require('../services/cloudinary.js');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const formatDuration = require('../utils/formateDuration.js');
 
 module.exports.searchUser = asyncHandler(async (req, res) => {
   const query = req.query.query?.toLowerCase();
@@ -156,7 +157,7 @@ module.exports.addHistory = asyncHandler(async (req, res) => {
 
   console.log('song genre', song.genre);
   console.log('top genre', user.topGenre[0].genre);
-  console.log(genreExist)
+  console.log(genreExist);
 
   if (genreExist) {
     const songToUpdate = user.topGenre.find(
@@ -333,7 +334,6 @@ module.exports.getOtp = asyncHandler(async (req, res) => {
 
 module.exports.changePassword = asyncHandler(async (req, res, next) => {
   const { newPassword, oldPassword } = req.body;
-  console.log(newPassword, oldPassword);
 
   const user = req.user;
 
@@ -366,7 +366,16 @@ module.exports.changePassword = asyncHandler(async (req, res, next) => {
 module.exports.updateUser = asyncHandler(async (req, res) => {
   const id = req.params.id;
   console.log(id);
-  const { fullName, email, password } = req.body;
+  const {
+    fullName,
+    email,
+    password,
+    address,
+    phoneNumber,
+    instagram,
+    facebook,
+    twitter
+  } = req.body;
   const file = req.file;
   let coverImageUrl = '';
 
@@ -386,14 +395,39 @@ module.exports.updateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(new mongoose.Types.ObjectId(id));
   if (!user)
     return res.status(404).json({ success: false, message: 'User not found' });
+
+  if (
+    !fullName &&
+    !email &&
+    !password &&
+    !address &&
+    !phoneNumber &&
+    !instagram &&
+    !facebook &&
+    !twitter &&
+    coverImageUrl == ''
+  )
+    return res.status(400).json({ success: false, message: 'Empty fields !' });
   if (fullName) user.fullName = fullName;
   if (email) user.email = email;
   if (password) user.password = password;
+  if (address) user.address = address;
+  if (phoneNumber) user.phoneNumber = phoneNumber;
+  if (instagram) user.instagram = instagram;
+  if (facebook) user.facebook = facebook;
+  if (twitter) user.twitter = twitter;
   if (coverImageUrl != '') user.coverImage = coverImageUrl;
-  await user.save();
-  return res
-    .status(200)
-    .json({ success: true, message: ' Updated Successfully' });
+  const updatedUser = await user.save();
+  // Create a new object to exclude the password field
+  const userWithoutPassword = { ...updatedUser.toObject() };
+  delete userWithoutPassword.password;
+  delete userWithoutPassword.allTimeSong;
+
+  return res.status(200).json({
+    success: true,
+    message: ' Updated Successfully',
+    data: userWithoutPassword
+  });
 });
 module.exports.forgetPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -472,21 +506,26 @@ module.exports.getPurchasedSong = asyncHandler(async (req, res) => {
     const purchasedSongIds = user.purchasedSongs;
 
     if (!purchasedSongIds || purchasedSongIds.length === 0) {
-      return res.status(200).json({ message: 'No purchased songs found' });
+      return res
+        .status(200)
+        .json({ message: 'No purchased songs found', purchasedSongs: [] });
     }
 
-    // Find all purchased songs and populate their artist and album details
-    const purchasedSongs = await Song.find({ _id: { $in: purchasedSongIds } })
+    const pSongs = await Song.find({ _id: { $in: purchasedSongIds } })
       .populate({
-        path: 'artist', // Populate the artist field
-        select: 'fullName bio' // Select only necessary fields from the artist
+        path: 'artist',
+        select: 'fullName bio'
       })
       .populate({
-        path: 'album', // Populate the album field
-        select: 'title coverImage' // Select only necessary fields from the album
+        path: 'album',
+        select: 'title coverImage'
       });
 
-    // Return the detailed song info
+    const purchasedSongs = pSongs.map((song) => ({
+      ...song.toObject(),
+      durationFormatted: formatDuration(song.duration)
+    }));
+
     return res.status(200).json({
       success: true,
       purchasedSongs
