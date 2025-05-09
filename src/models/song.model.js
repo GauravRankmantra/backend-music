@@ -19,7 +19,7 @@ const songSchema = new mongoose.Schema(
       }
     ],
     duration: {
-      type: Number
+      type: String
     },
     price: {
       type: Number,

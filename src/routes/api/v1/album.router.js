@@ -30,5 +30,6 @@ router.get('/artistAlbums:id',auth,albumController.getArtistAlbums)
 router.delete('/:id', auth, isAdminOrOwner, albumController.deleteAlbum);
 
 router.get('/:id', albumController.getAlbumDetail);
+router.get("/userAlbum/:id",albumController.getAlumByUserId)
 
 module.exports = router;

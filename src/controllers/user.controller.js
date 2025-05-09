@@ -805,3 +805,33 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
     });
   }
 });
+
+
+module.exports.getSongByUserId = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ success: false, message: 'No artist ID provided' });
+  }
+
+  try {
+    const artistId = new mongoose.Types.ObjectId(id.trim());
+
+    const songs = await Song.find({ artist: { $in: [artistId] } })
+      .populate({
+        path: 'genre',
+        select: 'name _id' 
+      });
+
+    return res.status(200).json({
+      success: true,
+      songs,
+    });
+  } catch (error) {
+    console.error('Error fetching songs by artist ID:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while fetching songs by artist',
+    });
+  }
+});

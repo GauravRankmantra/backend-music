@@ -93,7 +93,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
     const detail = await Album.aggregate([
       // Step 1: Match the album by its ID
       { $match: { _id: albumId } },
-  
+
       // Step 2: Populate artist and genre
       {
         $lookup: {
@@ -111,7 +111,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           as: 'genreDetails'
         }
       },
-  
+
       // Step 3: Join with songs collection to get album's songs
       {
         $lookup: {
@@ -144,7 +144,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           as: 'songs.artistDetails'
         }
       },
-  
+
       // Step 4: Regroup songs back into an array after unwinding
       {
         $group: {
@@ -159,7 +159,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           songs: { $push: '$songs' } // Reconstruct the songs array after unwinding
         }
       },
-  
+
       // Step 5: Add totalSongs and totalDuration
       {
         $addFields: {
@@ -167,11 +167,11 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           totalDuration: { $sum: '$songs.duration' } // Summing up duration of all songs
         }
       },
-  
+
       // Step 6: Unwind artist and genre arrays properly
       { $unwind: { path: '$artistDetails', preserveNullAndEmptyArrays: true } },
       { $unwind: { path: '$genreDetails', preserveNullAndEmptyArrays: true } },
-  
+
       // Step 7: Modify songs array to include artist details properly
       {
         $addFields: {
@@ -197,7 +197,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           }
         }
       },
-  
+
       // Step 8: Select only the fields we need
       {
         $project: {
@@ -216,18 +216,17 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
         }
       }
     ]);
-  
+
     // Check if album is found
     if (!detail || detail.length === 0) {
       return res.status(200).json({ message: 'No Album found' });
     }
-  
+
     // Return the album details (first item in the array)
     return res.status(200).json({ success: true, data: detail[0] });
   } catch (error) {
     return res.status(500).json({ message: 'failed', error });
   }
-  
 });
 
 module.exports.searchAlbums = asyncHandler(async (req, res) => {
@@ -237,30 +236,30 @@ module.exports.searchAlbums = asyncHandler(async (req, res) => {
     if (!query) {
       return res.status(400).json({
         success: false,
-        message: "Search query is required",
+        message: 'Search query is required'
       });
     }
 
     const albums = await Album.find({
-      title: { $regex: query, $options: "i" }, // Case-insensitive search
+      title: { $regex: query, $options: 'i' } // Case-insensitive search
     });
 
     if (!albums || albums.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No albums found matching your search.",
+        message: 'No albums found matching your search.'
       });
     }
 
     res.status(200).json({
       success: true,
       message: `Found ${albums.length} album(s) matching "${query}".`,
-      data: albums,
+      data: albums
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message || "An error occurred while searching for albums.",
+      message: error.message || 'An error occurred while searching for albums.'
     });
   }
 });
@@ -272,31 +271,31 @@ module.exports.filterAlbums = asyncHandler(async (req, res) => {
     let filterCondition = {};
 
     switch (filterType) {
-      case "genre":
+      case 'genre':
         filterCondition = { genre: value }; // Assuming genre is a string
         break;
-      case "artist":
+      case 'artist':
         filterCondition = { artist: value }; // Assuming artist is an ID or string
         break;
-      case "releaseDate":
+      case 'releaseDate':
         // Assuming value is in the format 'YYYY-MM-DD' or a year like '2022'
         filterCondition = { releaseDate: { $gte: new Date(value) } };
         break;
-      case "popularity":
+      case 'popularity':
         // Assuming albums have a 'plays' field for popularity
         filterCondition = {}; // No specific condition, sort by plays below
         break;
       default:
         return res.status(400).json({
           success: false,
-          message: "Invalid filter type.",
+          message: 'Invalid filter type.'
         });
     }
 
     let albums;
 
     // Handle the popularity filter separately (sort by 'plays')
-    if (filterType === "popularity") {
+    if (filterType === 'popularity') {
       albums = await Album.find(filterCondition).sort({ plays: -1 });
     } else {
       albums = await Album.find(filterCondition);
@@ -305,23 +304,22 @@ module.exports.filterAlbums = asyncHandler(async (req, res) => {
     if (!albums || albums.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `No albums found for the selected filter: ${filterType}`,
+        message: `No albums found for the selected filter: ${filterType}`
       });
     }
 
     res.status(200).json({
       success: true,
       message: `Found ${albums.length} album(s) for filter: ${filterType}.`,
-      data: albums,
+      data: albums
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message || "An error occurred while filtering albums.",
+      message: error.message || 'An error occurred while filtering albums.'
     });
   }
 });
-
 
 module.exports.getTop15 = asyncHandler(async (req, res) => {
   try {
@@ -398,7 +396,6 @@ module.exports.getAllAlbums = asyncHandler(async (req, res) => {
         }
       }
     ]);
-    
 
     if (!allAlbums || allAlbums.length === 0) {
       return res
@@ -418,7 +415,7 @@ module.exports.getAllAlbums = asyncHandler(async (req, res) => {
 module.exports.addComment = asyncHandler(async (req, res) => {
   const { name, email, comment, albumId } = req.body;
 
-  if (!comment || !name|| !email || !albumId)
+  if (!comment || !name || !email || !albumId)
     return res
       .status(400)
       .json({ message: 'Comment, userId, albumId required' });
@@ -641,4 +638,24 @@ module.exports.getAlbumSearch = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'No Album Found' });
 
   return res.status(200).json({ success: true, data: allAlbums });
+});
+
+module.exports.getAlumByUserId = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  console.log(id);
+
+  if (!id)
+    return res.status(400).json({ success: false, message: 'Id not provided' });
+  const albums = await Album.find({ artist: id }).lean();
+
+  if (!albums || albums.length === 0) {
+    return res.status(200).json({
+      success: false,
+      message: 'No albums found for this artist'
+    });
+  }
+  return res
+    .status(200)
+    .json({ success: true, message: 'Album fetch ed successfully', albums });
 });

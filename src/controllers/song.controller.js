@@ -34,31 +34,31 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     });
   }
 
-  // Upload the 'low' audio file
+
   const lowAudioPath = files.low[0].path;
-  const lowAudioUrl = await uploadFile(lowAudioPath); // Cloudinary upload for 'low'
+  const lowAudioUrl = await uploadFile(lowAudioPath); 
   const lowUrl = lowAudioUrl ? lowAudioUrl.secure_url : '';
 
   let highUrl = '';
   if (files.high && files.high.length > 0) {
     const highAudioPath = files.high[0].path;
-    const highAudioUrl = await uploadFile(highAudioPath); // Cloudinary upload for 'high'
+    const highAudioUrl = await uploadFile(highAudioPath); 
     highUrl = highAudioUrl ? highAudioUrl.secure_url : '';
   }
 
-  // Upload the 'coverImage' file if it exists
+ 
   let coverImageUrl = '';
   if (files.coverImage && files.coverImage.length > 0) {
     const coverImagePath = files.coverImage[0].path;
-    const coverImageFile = await uploadFile(coverImagePath); // Cloudinary upload for 'coverImage'
+    const coverImageFile = await uploadFile(coverImagePath); 
     coverImageUrl = coverImageFile ? coverImageFile.secure_url : '';
   }
 
-  // Ensure artist is an array of valid ObjectIds
+  
   let artistArray = [];
   if (body.artists) {
     try {
-      artistArray = JSON.parse(body.artists); // Expecting artists to be sent as a JSON string
+      artistArray = JSON.parse(body.artists); 
       if (!Array.isArray(artistArray)) throw new Error();
     } catch (error) {
       return res.status(400).json({
@@ -68,10 +68,10 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     }
   }
   const durationfix = formatDuration(lowAudioUrl.duration);
-  // Prepare the data to be saved in the Song model
+ 
   const newSong = new Song({
     title: body.title,
-    artist: artistArray, // Now expecting an array of ObjectIds
+    artist: artistArray, 
     duration: durationfix,
     audioUrls: {
       low: lowUrl,
@@ -80,20 +80,20 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     album: body.album || null,
     coverImage: coverImageUrl,
     genre: body.genre,
-    freeDownload: body.freeDownload === 'true', // Ensure it's a boolean
-    price: parseFloat(body.price) || 0, // Convert to number safely
-    plays: 0, // Default plays count
-    isPublished: body.isPublished !== 'false' // Default true unless explicitly set to false
+    freeDownload: body.freeDownload === 'true', 
+    price: parseFloat(body.price) || 0, 
+    plays: 0, 
+    isPublished: body.isPublished !== 'false'
   });
 
-  // Save the song in the database
+ 
   await newSong.save();
   const songId = new mongoose.Types.ObjectId(newSong._id);
 
   const populatedSong = await Song.aggregate([
     { $match: { _id: songId } },
 
-    // Lookup artist details
+ 
     {
       $lookup: {
         from: 'users',
@@ -103,7 +103,7 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       }
     },
 
-    // Lookup genre details
+  
     {
       $lookup: {
         from: 'genres',
@@ -113,7 +113,7 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       }
     },
 
-    // Unwind genre if needed (optional, if you only expect one genre)
+
     {
       $unwind: {
         path: '$genreDetails',
@@ -121,7 +121,7 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       }
     },
 
-    // Optional: Map artistDetails to just names (if needed)
+
     {
       $addFields: {
         artistNames: {
@@ -134,7 +134,7 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       }
     },
 
-    // Optional: Choose which fields to return
+  
     {
       $project: {
         _id: 1,

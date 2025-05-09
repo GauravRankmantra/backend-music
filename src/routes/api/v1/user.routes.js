@@ -42,5 +42,6 @@ router.post("/get-otp",userController.getOtp)
 router.get("/getPurchasedSong",auth,userController.getPurchasedSong)
 router.get('/featuredArtists', userController.featuredArtists);
 router.get('/artist:id',userController.getArtistDetail)
+router.get("/getUserSongs:id",userController.getSongByUserId)
 
 module.exports = router;
