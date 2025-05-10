@@ -432,50 +432,81 @@ module.exports.addComment = asyncHandler(async (req, res) => {
 
 module.exports.addAlbums = asyncHandler(async (req, res) => {
   const { title, artist, genre, company } = req.body;
-  if (!title || !artist || !genre || !company)
-    return res
-      .status(400)
-      .json({ success: false, message: 'All fields are require ' });
-  const file = req.file;
 
+  if (!title || !artist || !genre || !company) {
+    return res.status(400).json({
+      success: false,
+      message: 'All fields are required',
+    });
+  }
+
+  const file = req.file;
   let coverImageUrl = '';
 
+  // Upload cover image if exists
   if (file) {
-    const coverImagePath = file.path; // Get the cover image path from Multer
     try {
-      const coverImageFile = await uploadFile(coverImagePath); // Upload to Cloudinary
-      coverImageUrl = coverImageFile ? coverImageFile.secure_url : ''; // Get Cloudinary URL
-    } catch (error) {
-      return res
-        .status(500)
-        .json({ message: 'Error uploading cover image', error });
+      const uploaded = await uploadFile(file.path);
+      coverImageUrl = uploaded?.secure_url || '';
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: 'Error uploading cover image',
+        error: err.message,
+      });
     }
   }
 
-  try {
-    // Create a new album
-    const coverImage = coverImageUrl;
-    // const validSongs = Array.isArray(songs)
-    //   ? songs.map((id) => new mongoose.Types.ObjectId(id.trim()))
-    //   : songs
-    //     ? songs.split(',').map((id) => new mongoose.Types.ObjectId(id.trim()))
-    //     : [];
+  // Handle artist input (array or single)
+  let artistArray = [];
 
+  try {
+    const parsed = JSON.parse(artist);
+    if (Array.isArray(parsed)) {
+      artistArray = parsed.map((id) => new mongoose.Types.ObjectId(id));
+    } else if (typeof parsed === 'string') {
+      artistArray = [new mongoose.Types.ObjectId(parsed)];
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid artist data format',
+      });
+    }
+  } catch (err) {
+    // If it's not a JSON string, assume it's a single artist ID
+    if (mongoose.Types.ObjectId.isValid(artist)) {
+      artistArray = [new mongoose.Types.ObjectId(artist)];
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid artist ID',
+      });
+    }
+  }
+
+  // Create and save the album
+  try {
     const album = new Album({
       title,
-      artist,
-      coverImage,
+      artist: artistArray,
+      coverImage: coverImageUrl,
       genre,
       company,
-      releaseDate: Date.now()
+      releaseDate: new Date(),
     });
 
-    // Save the album to the database
-    const savedAlbum = await album.save();
-
-    res.status(201).json(savedAlbum);
+    const saved = await album.save();
+    res.status(201).json({
+      success: true,
+      message: 'Album created successfully',
+      album: saved,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating album', error });
+    res.status(500).json({
+      success: false,
+      message: 'Error saving album',
+      error: error.message,
+    });
   }
 });
 

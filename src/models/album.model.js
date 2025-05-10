@@ -8,11 +8,13 @@ const albumSchema = new mongoose.Schema(
       trim: true,
       maxLength: 100
     },
-    artist: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
+    artist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      }
+    ],
     company: {
       type: String,
       default: ''
