@@ -431,12 +431,12 @@ module.exports.addComment = asyncHandler(async (req, res) => {
 });
 
 module.exports.addAlbums = asyncHandler(async (req, res) => {
-  const { title, artist, genre, company } = req.body;
+  const { title, artist, genre, company, isFeatured, isTranding } = req.body;
 
   if (!title || !artist || !genre || !company) {
     return res.status(400).json({
       success: false,
-      message: 'All fields are required',
+      message: 'All fields are required'
     });
   }
 
@@ -452,7 +452,7 @@ module.exports.addAlbums = asyncHandler(async (req, res) => {
       return res.status(500).json({
         success: false,
         message: 'Error uploading cover image',
-        error: err.message,
+        error: err.message
       });
     }
   }
@@ -469,7 +469,7 @@ module.exports.addAlbums = asyncHandler(async (req, res) => {
     } else {
       return res.status(400).json({
         success: false,
-        message: 'Invalid artist data format',
+        message: 'Invalid artist data format'
       });
     }
   } catch (err) {
@@ -479,7 +479,7 @@ module.exports.addAlbums = asyncHandler(async (req, res) => {
     } else {
       return res.status(400).json({
         success: false,
-        message: 'Invalid artist ID',
+        message: 'Invalid artist ID'
       });
     }
   }
@@ -492,20 +492,22 @@ module.exports.addAlbums = asyncHandler(async (req, res) => {
       coverImage: coverImageUrl,
       genre,
       company,
-      releaseDate: new Date(),
+      isTranding,
+      isFeatured,
+      releaseDate: new Date()
     });
 
     const saved = await album.save();
     res.status(201).json({
       success: true,
       message: 'Album created successfully',
-      album: saved,
+      album: saved
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Error saving album',
-      error: error.message,
+      error: error.message
     });
   }
 });
