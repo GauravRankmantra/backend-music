@@ -114,7 +114,7 @@ module.exports.searchAll = asyncHandler(async (req, res) => {
           from: 'users',
           localField: 'artist',
           foreignField: '_id',
-          as: 'artistInfo'
+          as: 'artist'
         }
       },
       { $unwind: { path: "$artistInfo", preserveNullAndEmptyArrays: true } },
@@ -137,10 +137,10 @@ module.exports.searchAll = asyncHandler(async (req, res) => {
           plays: 1,
           price: 1,
           freeDownload: 1,
-          artist: '$artistInfo.fullName',
+         
 
           audioUrls: 1,
-          artistInfo: {
+          artist: {
             _id: 1,
             fullName: 1,
             coverImage: 1
