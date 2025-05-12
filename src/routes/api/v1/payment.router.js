@@ -16,7 +16,6 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(400).json({ error: 'Invalid products format' });
     }
 
-
     const line_items = products.map((product) => ({
       price_data: {
         currency: 'usd',
@@ -41,7 +40,10 @@ router.post('/create-checkout-session', async (req, res) => {
       cancel_url: `https://odgmusic.com/purchased?id=${encodeURIComponent(products[0]._id)}`,
       metadata: {
         songId: products[0]._id,
-        album: products[0]?.album?.title || products[0]?.albumInfo?.title || "Unknown"
+        album:
+          products[0]?.album?.title ||
+          products[0]?.albumInfo?.title ||
+          'Unknown'
       }
     });
 
@@ -52,20 +54,20 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-router.get("/stripe/session/:id", async (req, res) => {
+router.get('/stripe/session/:id', async (req, res) => {
   try {
     const session = await stripe.checkout.sessions.retrieve(req.params.id);
     const { metadata } = session;
 
-    console.log("metadata",metadata)
+    console.log('metadata', metadata);
 
     res.status(200).json({
       songId: metadata.songId,
-      album: metadata.album,
+      album: metadata.album
     });
   } catch (err) {
-    console.error("Failed to retrieve session:", err);
-    res.status(500).json({ error: "Failed to get session info" });
+    console.error('Failed to retrieve session:', err);
+    res.status(500).json({ error: 'Failed to get session info' });
   }
 });
 
