@@ -42,6 +42,10 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
     popularity
   } = body;
 
+  if (role == 'user' || role == 'admin') {
+    const user = await User.find({ email: email });
+    if (user) return res.status(400).json({ message: 'email alredy exists' });
+  }
   const userAvatar = files?.avatar || '';
   const userCoverImage = files?.coverImage || '';
 
@@ -73,7 +77,7 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
       const duplicateField = Object.keys(error.keyValue)[0]; // Get the field that caused the error
       return res.status(400).json({
         success: false,
-        message: `${duplicateField.charAt(0).toUpperCase() + duplicateField.slice(1)} already exists`
+        message: `${duplicateField.charAt(0).toUpperCase() + duplicateField.slice(1)} already exists :)`
       });
     } else {
       // Other errors
@@ -694,6 +698,32 @@ module.exports.getAllUsers = asyncHandler(async (req, res) => {
   }
 });
 
+module.exports.getAllArtist = asyncHandler(async (req, res) => {
+  try {
+    const { page = 1, limit = 10, role } = req.query;
+
+    const query = { role: 'artist' };
+    if (role) {
+      query.role = role; // dynamically add role filter
+    }
+
+    const users = await User.find(query)
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const totalUsers = await User.countDocuments(query); 
+
+    res.json({
+      totalUsers,
+      totalPages: Math.ceil(totalUsers / limit),
+      currentPage: Number(page),
+      users
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching users', error });
+  }
+});
+
 module.exports.deleteUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const _id = new mongoose.Types.ObjectId(id.trim());
@@ -806,32 +836,32 @@ module.exports.getArtistDetail = asyncHandler(async (req, res) => {
   }
 });
 
-
 module.exports.getSongByUserId = asyncHandler(async (req, res) => {
   const id = req.params.id;
 
   if (!id) {
-    return res.status(400).json({ success: false, message: 'No artist ID provided' });
+    return res
+      .status(400)
+      .json({ success: false, message: 'No artist ID provided' });
   }
 
   try {
     const artistId = new mongoose.Types.ObjectId(id.trim());
 
-    const songs = await Song.find({ artist: { $in: [artistId] } })
-      .populate({
-        path: 'genre',
-        select: 'name _id' 
-      });
+    const songs = await Song.find({ artist: { $in: [artistId] } }).populate({
+      path: 'genre',
+      select: 'name _id'
+    });
 
     return res.status(200).json({
       success: true,
-      songs,
+      songs
     });
   } catch (error) {
     console.error('Error fetching songs by artist ID:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error while fetching songs by artist',
+      message: 'Server error while fetching songs by artist'
     });
   }
 });

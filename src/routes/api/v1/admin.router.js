@@ -4,6 +4,7 @@ const userController = require("../../../controllers/user.controller.js");
 
 //all user action's
 router.get("/users",userController.getAllUsers)
+router.get("/artist",userController.getAllArtist)
 router.get("/searchUser",userController.searchUser)
 
 

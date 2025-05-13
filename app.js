@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const cors = require('cors');
 
+
 const app = express();
 
 //middlewares
@@ -63,6 +64,8 @@ app.use(
 app.use('/server/health', (req, res) => {
   res.send({ success: true, message: 'Server is running..' });
 });
+
+
 
 //import routes
 const apiRoutes = require('./src/routes/index.js');

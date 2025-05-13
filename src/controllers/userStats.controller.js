@@ -3,23 +3,104 @@ const UserStats = require('../models/userStats.model.js');
 const mongoose = require('mongoose');
 const Song = require('../models/song.model.js');
 
+
+
+
+const getDateRange = (filter) => {
+  const today = new Date();
+  let startDate, endDate;
+
+  switch (filter) {
+    case 'weekly':
+      // Set startDate to 6 days before today
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() - 6);
+      break;
+    case 'monthly':
+      // Set startDate to the first day of the current month
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      break;
+    case 'all':
+    default:
+      // Set startDate to a date far in the past
+      startDate = new Date(0);
+      break;
+  }
+
+  // Set endDate to the end of today
+  endDate = new Date(today);
+  endDate.setHours(23, 59, 59, 999);
+
+  return { startDate, endDate };
+};
+
+
+
+
 module.exports.getUserStats = asyncHandler(async (req, res) => {
-  const id = req.params;
-  if (!id)
-    return res
-      .status(400)
-      .json({ success: false, message: 'No user id provided' });
-  const download = UserStats.find({ user: id });
+  const { id } = req.params;
+  const userId = new mongoose.Types.ObjectId(id);
+  const { filter = 'weekly' } = req.query;
 
-  if (!download)
-    return res
-      .status(400)
-      .json({ success: false, data: [], message: 'No data avaliable ' });
+  if (!id) {
+    return res.status(400).json({ success: false, message: 'No user id provided' });
+  }
 
-  return res
-    .status(200)
-    .json({ success: true, message: 'success', data: download });
+  const now = new Date();
+  let startDate;
+
+  switch (filter) {
+    case 'weekly':
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 6); // Last 7 days including today
+      break;
+    case 'monthly':
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 29); // Last 30 days including today
+      break;
+    case 'all':
+      startDate = null; // No date filter
+      break;
+    default:
+      return res.status(400).json({ success: false, message: 'Invalid filter value' });
+  }
+
+  try {
+    const matchStage = { user: userId };
+    if (startDate) {
+      matchStage.date = { $gte: startDate, $lte: now };
+    }
+
+    const stats = await UserStats.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$date' },
+            month: { $month: '$date' },
+            day: { $dayOfMonth: '$date' },
+          },
+          downloads: { $sum: '$downloads' },
+          purchases: { $sum: '$purchases' },
+          revenue: { $sum: '$revenue' },
+        },
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 },
+      },
+    ]);
+
+    if (!stats || stats.length === 0) {
+      return res.status(404).json({ success: false, data: [], message: 'No data available for this user' });
+    }
+
+    return res.status(200).json({ success: true, message: 'success', data: stats });
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch user stats' });
+  }
 });
+
 
 module.exports.addDownloadStats = asyncHandler(async (req, res) => {
   const { songId, artistIds } = req.body; // Expecting artistIds as an array
@@ -78,7 +159,7 @@ module.exports.addDownloadStats = asyncHandler(async (req, res) => {
 });
 
 module.exports.addPurchaseStats = asyncHandler(async (req, res) => {
-  const { songId, artistIds } = req.body; // Expecting artistIds as an array
+  const { artistIds } = req.body; // Expecting artistIds as an array
 
   if (!Array.isArray(artistIds) || artistIds.length === 0) {
     res.status(400).json({ message: 'Artist IDs are required as an array' });
@@ -133,21 +214,16 @@ module.exports.addPurchaseStats = asyncHandler(async (req, res) => {
 });
 
 module.exports.addRevenueStats = asyncHandler(async (req, res) => {
-  const { songId, artistIds } = req.body; // Expecting artistIds as an array
+  const { price, artistIds } = req.body; // Expecting artistIds as an array
 
   if (!Array.isArray(artistIds) || artistIds.length === 0) {
     res.status(400).json({ message: 'Artist IDs are required as an array' });
     return;
   }
-  if (!songId) return res.status(400).json({ message: 'Song Id is required' });
 
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to the beginning of the day
-
-    const song = await Song.findById(songId);
-    if (!song)
-      return res.status(404).json({ message: 'No song found with this id ' });
 
     const updatePromises = artistIds.map(async (artistId) => {
       if (!mongoose.Types.ObjectId.isValid(artistId)) {
@@ -162,7 +238,7 @@ module.exports.addRevenueStats = asyncHandler(async (req, res) => {
 
       if (existingStats) {
         // If stats exist for today, increment the downloads count
-        existingStats.revenue += song.price;
+        existingStats.revenue += price;
         await existingStats.save();
         return { artistId, status: 'incremented' };
       } else {
