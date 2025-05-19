@@ -25,6 +25,7 @@ router.post(
 );
 router.get('/', songController.getAllSongs);
 router.get('/top15', songController.top15);
+router.get("/totalSongs",songController.getTotalSongs)
 router.get('/weeklyTop15', songController.getWeeklyTop15);
 router.post('/incresePlayCont',songController.incresePlayCont)
 router.get("/songs-uploaded-this-week",songController.thisWeekTotalSongUploded)

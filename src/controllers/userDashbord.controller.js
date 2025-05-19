@@ -91,7 +91,6 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
       paymentDate: user.paymentDate,
       uploadedSongsThisMonth: user.uploadedSongsThisMonth,
       downloadedSongsThisMonth: user.downloadedSongsThisMonth,
-      activityStats: user.activityStats || [],
       songsThisMonth: user.songsThisMonth || [],
       purchasedSongs,
       songsHistory,
@@ -115,6 +114,43 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
     });
   }
 });
+
+
+
+module.exports.getWeeklyActivityStats = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId).select('activityStats').lean();
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to midnight
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 6); // 6 days before today (total 7 including today)
+
+    const weeklyStats = (user.activityStats || []).filter(stat => {
+      const statDate = new Date(stat.date);
+      return statDate >= sevenDaysAgo && statDate <= today;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: weeklyStats
+    });
+  } catch (error) {
+    console.error('Error in getWeeklyActivityStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+      error: error.message
+    });
+  }
+});
+
 
 
 module.exports.addActivity = asyncHandler(async (req, res) => {

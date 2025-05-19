@@ -9,10 +9,13 @@ const userSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-
       trim: true,
       lowercase: true,
       maxLength: 50
+    },
+    admin: {
+      type: Boolean,
+      default: false
     },
     fullName: {
       type: String,
@@ -111,6 +114,14 @@ const userSchema = new mongoose.Schema(
     twitter: {
       type: String,
       default: ''
+    },
+    stripeId: {
+      type: String,
+      default: null
+    },
+    paypalId: {
+      type: String,
+      default: null
     },
     phoneNumber: {
       type: String,

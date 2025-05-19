@@ -39,15 +39,20 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
     role,
     isFeatured,
     isVerified,
-    popularity
+    popularity,
+    admin
   } = body;
 
-  if (role == 'user' || role == 'admin') {
-    const user = await User.find({ email: email });
-    if (user) return res.status(400).json({ message: 'email alredy exists' });
+if (role === 'user' || role === 'admin') {
+  const users = await User.find({ email: email });
+  if (users.length > 0) {
+    return res.status(400).json({ message: 'Email already exists' });
   }
+}
   const userAvatar = files?.avatar || '';
   const userCoverImage = files?.coverImage || '';
+  let isowner = false;
+  if (admin===true) isowner = true;
 
   const avatar = await uploadFile(userAvatar[0]?.path);
   const coverImage = await uploadFile(userCoverImage[0]?.path || '');
@@ -60,6 +65,7 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
       isFeatured,
       isVerified,
       popularity,
+      admin:isowner,
       avatar: avatar?.url || '',
       coverImage: coverImage?.url || ''
     });
@@ -711,7 +717,7 @@ module.exports.getAllArtist = asyncHandler(async (req, res) => {
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
-    const totalUsers = await User.countDocuments(query); 
+    const totalUsers = await User.countDocuments(query);
 
     res.json({
       totalUsers,

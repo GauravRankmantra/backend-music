@@ -34,31 +34,28 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     });
   }
 
-
   const lowAudioPath = files.low[0].path;
-  const lowAudioUrl = await uploadFile(lowAudioPath); 
+  const lowAudioUrl = await uploadFile(lowAudioPath);
   const lowUrl = lowAudioUrl ? lowAudioUrl.secure_url : '';
 
   let highUrl = '';
   if (files.high && files.high.length > 0) {
     const highAudioPath = files.high[0].path;
-    const highAudioUrl = await uploadFile(highAudioPath); 
+    const highAudioUrl = await uploadFile(highAudioPath);
     highUrl = highAudioUrl ? highAudioUrl.secure_url : '';
   }
 
- 
   let coverImageUrl = '';
   if (files.coverImage && files.coverImage.length > 0) {
     const coverImagePath = files.coverImage[0].path;
-    const coverImageFile = await uploadFile(coverImagePath); 
+    const coverImageFile = await uploadFile(coverImagePath);
     coverImageUrl = coverImageFile ? coverImageFile.secure_url : '';
   }
 
-  
   let artistArray = [];
   if (body.artists) {
     try {
-      artistArray = JSON.parse(body.artists); 
+      artistArray = JSON.parse(body.artists);
       if (!Array.isArray(artistArray)) throw new Error();
     } catch (error) {
       return res.status(400).json({
@@ -68,10 +65,10 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     }
   }
   const durationfix = formatDuration(lowAudioUrl.duration);
- 
+
   const newSong = new Song({
     title: body.title,
-    artist: artistArray, 
+    artist: artistArray,
     duration: durationfix,
     audioUrls: {
       low: lowUrl,
@@ -80,20 +77,18 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
     album: body.album || null,
     coverImage: coverImageUrl,
     genre: body.genre,
-    freeDownload: body.freeDownload === 'true', 
-    price: parseFloat(body.price) || 0, 
-    plays: 0, 
+    freeDownload: body.freeDownload === 'true',
+    price: parseFloat(body.price) || 0,
+    plays: 0,
     isPublished: body.isPublished !== 'false'
   });
 
- 
   await newSong.save();
   const songId = new mongoose.Types.ObjectId(newSong._id);
 
   const populatedSong = await Song.aggregate([
     { $match: { _id: songId } },
 
- 
     {
       $lookup: {
         from: 'users',
@@ -103,7 +98,6 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       }
     },
 
-  
     {
       $lookup: {
         from: 'genres',
@@ -113,14 +107,12 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       }
     },
 
-
     {
       $unwind: {
         path: '$genreDetails',
         preserveNullAndEmptyArrays: true
       }
     },
-
 
     {
       $addFields: {
@@ -134,7 +126,6 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       }
     },
 
-  
     {
       $project: {
         _id: 1,
@@ -904,3 +895,18 @@ module.exports.thisWeekTotalSongUploded = asyncHandler(async (req, res) => {
 //     }
 //   ])
 // })
+
+module.exports.getTotalSongs = asyncHandler(async (req, res) => {
+  try {
+    const totalSongs = await Song.countDocuments();
+    res.status(200).json({ total: totalSongs }); // Send a JSON response with status 200 (OK)
+  } catch (error) {
+    console.error('Error while fetching total songs:', error); // It's better to use console.error for errors
+    res
+      .status(500)
+      .json({
+        message: 'Failed to fetch total number of songs',
+        error: error.message
+      }); 
+  }
+});

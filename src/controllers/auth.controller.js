@@ -43,9 +43,9 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
   }
 
   // Find user by email OR username
-  const user = await User.findOne({
-    $or: [{ email: trimmedEmail }, { userName: trimmedUserName }]
-  });
+const user = await User.findOne({
+  $or: [{ email: trimmedEmail }, { userName: trimmedUserName }]
+}).select(' -activityStats -songsThisMonth -allTimeSong -topGenre -songsHistory');
 
   if (!user) {
     return res.status(401).json({

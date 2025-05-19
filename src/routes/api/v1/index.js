@@ -21,6 +21,7 @@ const userDashbordRouter = require('./userDashbord.router.js');
 const webUpdateRouter = require('./webUpdate.router.js');
 const ticketRouter = require('./ticket.router.js');
 const userStatsRouter = require('./userStats.router.js');
+const salesRouter = require("./sales.router.js")
 
 router.use('/user', userRouter);
 router.use('/userDashbord', userDashbordRouter);
@@ -41,5 +42,6 @@ router.use('/privacy', privacyRouter);
 router.use('/terms', termsRouter);
 router.use('/web', webUpdateRouter);
 router.use('/userStats', userStatsRouter);
+router.use('/sale',salesRouter)
 
 module.exports = router;

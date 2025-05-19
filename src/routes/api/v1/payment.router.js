@@ -12,6 +12,8 @@ router.post('/create-checkout-session', async (req, res) => {
   try {
     const { products } = req.body;
 
+    console.log('products', products);
+
     if (!products || !Array.isArray(products)) {
       return res.status(400).json({ error: 'Invalid products format' });
     }
@@ -36,8 +38,8 @@ router.post('/create-checkout-session', async (req, res) => {
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
-      success_url: `https://odgmusic.com/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://odgmusic.com/purchased?id=${encodeURIComponent(products[0]._id)}`,
+      success_url: `http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://localhost:5000/purchased?id=${encodeURIComponent(products[0]._id)}`,
       metadata: {
         songId: products[0]._id,
         album:
@@ -56,14 +58,48 @@ router.post('/create-checkout-session', async (req, res) => {
 
 router.get('/stripe/session/:id', async (req, res) => {
   try {
-    const session = await stripe.checkout.sessions.retrieve(req.params.id);
-    const { metadata } = session;
+    const session = await stripe.checkout.sessions.retrieve(req.params.id, {
+      expand: ['payment_intent'] // no need to expand 'charges' anymore
+    });
 
-    console.log('metadata', metadata);
+    const paymentIntent = session.payment_intent;
+    const chargeId = paymentIntent.latest_charge;
+
+    if (!chargeId) {
+      return res.status(202).json({
+        message: 'Charge not yet available. Try again shortly.',
+        status: paymentIntent.status
+      });
+    }
+
+    const charge = await stripe.charges.retrieve(chargeId);
+    const balanceTransaction = await stripe.balanceTransactions.retrieve(
+      charge.balance_transaction
+    );
 
     res.status(200).json({
-      songId: metadata.songId,
-      album: metadata.album
+      songId: session.metadata.songId,
+      album: session.metadata.album,
+      paymentInfo: {
+        amount_received: paymentIntent.amount_received / 100,
+        currency: paymentIntent.currency,
+        payment_intent_id: paymentIntent.id,
+        charge_id: charge.id,
+        stripe_fee: balanceTransaction.fee / 100,
+        net_amount: balanceTransaction.net / 100,
+        total_amount: balanceTransaction.amount / 100,
+        status: paymentIntent.status,
+        created_at: new Date(paymentIntent.created * 1000),
+        exchange_rate: balanceTransaction.exchange_rate,
+        card_last4: charge.payment_method_details?.card?.last4,
+        card_brand: charge.payment_method_details?.card?.brand,
+        country: charge.billing_details?.address?.country || 'N/A',
+        buyer_paid_usd: session.amount_total / 100, // amount charged in Checkout
+        platform_currency: balanceTransaction.currency.toUpperCase(), // e.g., CAD
+        platform_received: balanceTransaction.amount / 100, // in CAD
+        stripe_fee: balanceTransaction.fee / 100,
+        net_amount: balanceTransaction.net / 100
+      }
     });
   } catch (err) {
     console.error('Failed to retrieve session:', err);

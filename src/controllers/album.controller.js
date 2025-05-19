@@ -692,3 +692,20 @@ module.exports.getAlumByUserId = asyncHandler(async (req, res) => {
     .status(200)
     .json({ success: true, message: 'Album fetch ed successfully', albums });
 });
+
+
+
+module.exports.getTotalAlbums = asyncHandler(async (req, res) => {
+  try {
+    const totalAlbum = await Album.countDocuments();
+    res.status(200).json({ total: totalAlbum }); // Send a JSON response with status 200 (OK)
+  } catch (error) {
+    console.error('Error while fetching total songs:', error); // It's better to use console.error for errors
+    res
+      .status(500)
+      .json({
+        message: 'Failed to fetch total number of songs',
+        error: error.message
+      }); 
+  }
+});
