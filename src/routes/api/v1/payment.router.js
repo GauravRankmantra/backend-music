@@ -47,8 +47,8 @@ router.post('/create-checkout-session', async (req, res) => {
         }
       ],
       mode: 'payment',
-      success_url: `http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:5000/purchased?id=${encodeURIComponent(product._id)}`,
+      success_url: `https://odgmusic.com/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://odgmusic.com/purchased?id=${encodeURIComponent(product._id)}`,
       metadata: {
         songId: product._id,
         album: product?.album?.title || product?.albumInfo?.title || 'Unknown'
@@ -98,8 +98,8 @@ router.post('/create-checkout-session-admin', async (req, res) => {
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
-      success_url: `http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:5000/purchased?id=${encodeURIComponent(products[0]._id)}`,
+      success_url: `https://odgmusic.com/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://odgmusic.com/purchased?id=${encodeURIComponent(products[0]._id)}`,
       metadata: {
         songId: products[0]._id,
         album:
@@ -111,12 +111,10 @@ router.post('/create-checkout-session-admin', async (req, res) => {
 
     res.status(200).json({ id: session.id });
   } catch (error) {
-    console.error('Stripe session error:', error.message); 
-    res.status(500).json({ error: error.message }); 
+    console.error('Stripe session error:', error.message);
+    res.status(500).json({ error: error.message });
   }
 });
-
-
 
 router.post('/onboard-artist', async (req, res) => {
   try {
@@ -131,8 +129,8 @@ router.post('/onboard-artist', async (req, res) => {
     // 2. Generate an onboarding link
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: 'http://localhost:5173/dashboard/withdrawal',
-      return_url: 'http://localhost:5173/dashboard/withdrawal',
+      refresh_url: 'https://odgmusic.com/dashboard/withdrawal',
+      return_url: 'https://odgmusic.com/dashboard/withdrawal',
       type: 'account_onboarding'
     });
 
