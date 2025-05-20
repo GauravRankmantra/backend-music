@@ -126,7 +126,7 @@ router.post('/onboard-artist', async (req, res) => {
       email
     });
 
-    // 2. Generate an onboarding link
+    // 2. Generate an onboarding 
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
       refresh_url: 'https://odgmusic.com/dashboard/withdrawal',
