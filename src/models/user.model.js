@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    isTrending: {
+      type: Boolean,
+      default: false
+    },
     avatar: {
       type: String,
       default: ''
@@ -117,11 +121,13 @@ const userSchema = new mongoose.Schema(
     },
     stripeId: {
       type: String,
-      default: null
+      default: null,
+      trim: true
     },
     paypalId: {
       type: String,
-      default: null
+      default: null,
+      trim: true
     },
     phoneNumber: {
       type: String,

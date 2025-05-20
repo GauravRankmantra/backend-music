@@ -8,6 +8,8 @@ module.exports.createSale = async (req, res) => {
       sellerId,
       amountPaid,
       platformShare,
+      sellerEarning,
+      adminEarning,
       amountReceved, // Net from Stripe
       currency,
       stripeChargeId,
@@ -36,11 +38,12 @@ module.exports.createSale = async (req, res) => {
     }
 
     // Calculate revenue split
-    const sellerSharePercentage = 0.8;
-    const sellerEarning = parseFloat(
-      (amountReceved * sellerSharePercentage).toFixed(2)
-    );
-    const adminEarning = parseFloat((amountReceved - sellerEarning).toFixed(2)); // admin keeps rest
+
+    // const sellerSharePercentage = 0.7;
+    // const sellerEarning = parseFloat(
+    //   (amountPaid * sellerSharePercentage).toFixed(2)
+    // );
+    // const adminEarning = parseFloat((amountPaid - sellerEarning)-platformShare.toFixed(2)); // admin keeps rest
 
     const sale = await Sales.create({
       songId,
@@ -111,7 +114,7 @@ module.exports.getSaleById = async (req, res) => {
 module.exports.updateSale = async (req, res) => {
   try {
     const { payoutStatus } = req.body;
-    if (!['pending', 'paid','rejected'].includes(payoutStatus)) {
+    if (!['pending', 'paid', 'rejected'].includes(payoutStatus)) {
       return res.status(400).json({ error: 'Invalid payout status' });
     }
 

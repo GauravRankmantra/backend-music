@@ -22,6 +22,7 @@ const webUpdateRouter = require('./webUpdate.router.js');
 const ticketRouter = require('./ticket.router.js');
 const userStatsRouter = require('./userStats.router.js');
 const salesRouter = require("./sales.router.js")
+const AdminVideo = require("./video.router.js")
 
 router.use('/user', userRouter);
 router.use('/userDashbord', userDashbordRouter);
@@ -43,5 +44,6 @@ router.use('/terms', termsRouter);
 router.use('/web', webUpdateRouter);
 router.use('/userStats', userStatsRouter);
 router.use('/sale',salesRouter)
+router.use('/AdminVideo',AdminVideo)
 
 module.exports = router;

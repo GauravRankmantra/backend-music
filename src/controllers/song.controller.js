@@ -631,90 +631,42 @@ module.exports.getSongInfo = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-    console.log('Fetching song with ID:', id);
-    const song = await Song.aggregate([
-      {
-        $match: { _id: new mongoose.Types.ObjectId(id) }
-      },
-      {
-        $lookup: {
-          from: 'albums', // Collection name of the Album model
-          localField: 'album',
-          foreignField: '_id',
-          as: 'albumDetails'
-        }
-      },
-      {
-        $unwind: {
-          path: '$albumDetails',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'artist',
-          foreignField: '_id',
-          as: 'artistDetails'
-        }
-      },
-      {
-        $lookup: {
-          from: 'genres',
-          localField: 'genre',
-          foreignField: '_id',
-          as: 'genreDetails'
-        }
-      },
-      {
-        $unwind: {
-          path: '$genreDetails',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          title: 1,
-          rank: 1,
-          duration: 1,
-          price: 1,
-          freeDownload: 1,
-          audioUrls: 1,
-          coverImage: 1,
-          genre: 1,
-          plays: 1,
-          audioUrls: 1,
-          isPublished: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          album: '$albumDetails',
-          artist: '$artistDetails',
-          genre: '$genreDetails'
-        }
-      }
-    ]);
+    console.log('Fetching song with ID using populate:', id);
+    const song = await Song.findById(id)
+      .populate({
+        path: 'album',
+        select: '_id title coverImage', // Include album details you need
+      })
+      .populate({
+        path: 'artist',
+        select: '_id fullName stripeId paypalId admin',
+      })
+      .populate({
+        path: 'genre',
+        select: '_id name',
+      });
 
-    if (song && song.length > 0) {
+    if (song) {
       res.status(200).json({
         success: true,
-        data: song[0],
-        message: 'Song details retrieved successfully.'
+        data: song,
+        message: 'Song details retrieved successfully.',
       });
     } else {
       res.status(404).json({
         success: false,
-        message: 'Song not found.'
+        message: 'Song not found.',
       });
     }
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Server error. Could not retrieve song details.',
-      error: error.message
+      error: error.message,
     });
   }
 });
+
 
 module.exports.getSongByGenre = asyncHandler(async (req, res) => {
   try {

@@ -38,21 +38,20 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
     password,
     role,
     isFeatured,
+    isTrending,
     isVerified,
     popularity,
     admin
   } = body;
 
-if (role === 'user' || role === 'admin') {
-  const users = await User.find({ email: email });
-  if (users.length > 0) {
-    return res.status(400).json({ message: 'Email already exists' });
+  if (role === 'user' || role === 'admin') {
+    const users = await User.find({ email: email });
+    if (users.length > 0) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
   }
-}
   const userAvatar = files?.avatar || '';
   const userCoverImage = files?.coverImage || '';
-  let isowner = false;
-  if (admin===true) isowner = true;
 
   const avatar = await uploadFile(userAvatar[0]?.path);
   const coverImage = await uploadFile(userCoverImage[0]?.path || '');
@@ -63,9 +62,10 @@ if (role === 'user' || role === 'admin') {
       password,
       role,
       isFeatured,
+      isTrending,
       isVerified,
       popularity,
-      admin:isowner,
+      admin,
       avatar: avatar?.url || '',
       coverImage: coverImage?.url || ''
     });
@@ -384,6 +384,8 @@ module.exports.updateUser = asyncHandler(async (req, res) => {
     phoneNumber,
     instagram,
     facebook,
+    isFeatured,
+    isTrending,
     twitter
   } = req.body;
   const file = req.file;
@@ -426,6 +428,9 @@ module.exports.updateUser = asyncHandler(async (req, res) => {
   if (instagram) user.instagram = instagram;
   if (facebook) user.facebook = facebook;
   if (twitter) user.twitter = twitter;
+  if (isFeatured) user.isFeatured = isFeatured;
+  if (isTrending) user.isTrending = isTrending;
+
   if (coverImageUrl != '') user.coverImage = coverImageUrl;
   const updatedUser = await user.save();
   // Create a new object to exclude the password field
@@ -870,4 +875,81 @@ module.exports.getSongByUserId = asyncHandler(async (req, res) => {
       message: 'Server error while fetching songs by artist'
     });
   }
+});
+
+module.exports.addWithdrawalMethod = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { paypalId, stripeId } = req.body;
+
+  if (!paypalId && !stripeId) {
+    return res.status(400).json({
+      success: false,
+      message: 'At least one method (PayPal or Stripe) is required.'
+    });
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    {
+      ...(paypalId !== undefined && { paypalId }),
+      ...(stripeId !== undefined && { stripeId })
+    },
+    { new: true }
+  ).select('paypalId stripeId');
+
+  res.status(200).json({
+    success: true,
+    message: 'Withdrawal method updated successfully.',
+    data: updatedUser
+  });
+});
+
+// ✅ Get Withdrawal Methods
+module.exports.getWithdrawalMethod = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const user = await User.findById(userId).select('paypalId stripeId');
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: {
+      paypalId: user.paypalId,
+      stripeId: user.stripeId
+    }
+  });
+});
+
+// ✅ Delete One or Both Withdrawal Methods
+module.exports.deleteWithdrawalMethod = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { method } = req.query;
+
+  const update = {};
+  if (method === 'paypal') {
+    update.paypalId = null;
+  } else if (method === 'stripe') {
+    update.stripeId = null;
+  } else if (method === 'all') {
+    update.paypalId = null;
+    update.stripeId = null;
+  } else {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid method. Use "paypal", "stripe", or "all".'
+    });
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(userId, update, {
+    new: true
+  }).select('paypalId stripeId');
+
+  res.status(200).json({
+    success: true,
+    message: 'Withdrawal method deleted successfully.',
+    data: updatedUser
+  });
 });

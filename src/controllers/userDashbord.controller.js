@@ -1,30 +1,28 @@
 const User = require('../models/user.model.js');
 const Song = require('../models/song.model.js');
 const Genre = require('../models/genre.model.js');
+const Sale = require('../models/sales.model.js');
 const { asyncHandler } = require('../utils/asyncHandler');
 const mongoose = require('mongoose');
-
 
 // utils/formatDuration.js
 const formatDuration = (duration) => {
   if (duration < 10) {
     const minutes = Math.floor(duration);
     const seconds = Math.round((duration - minutes) * 60);
-    return `${minutes.toString().padStart(2, "0")}:${seconds
+    return `${minutes.toString().padStart(2, '0')}:${seconds
       .toString()
-      .padStart(2, "0")}`;
+      .padStart(2, '0')}`;
   } else {
     // Assume duration is in seconds.
     const totalSeconds = Math.round(duration);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${seconds
+    return `${minutes.toString().padStart(2, '0')}:${seconds
       .toString()
-      .padStart(2, "0")}`;
+      .padStart(2, '0')}`;
   }
 };
-
-
 
 module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
   try {
@@ -33,11 +31,17 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
     const user = await User.findById(userId)
       .lean()
       .select('-password -otp -__v -refreshToken')
-      .populate('purchasedSongs', 'title coverImage audioUrls duration artist album genre')
+      .populate(
+        'purchasedSongs',
+        'title coverImage audioUrls duration artist album genre'
+      )
       .populate('favArtist', 'fullName coverImage')
       .populate('topGenre.genre', 'name image')
       .populate('songsHistory', 'title coverImage  audioUrls duration')
-      .populate('allTimeSong.song', 'title audioUrls artist coverImage duration')
+      .populate(
+        'allTimeSong.song',
+        'title audioUrls artist coverImage duration'
+      )
       .populate({
         path: 'allTimeSong.song',
         populate: {
@@ -51,30 +55,30 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
     }
 
     // Slice purchasedSongs and songsHistory
-    const purchasedSongs = (user.purchasedSongs || []).slice(0, 4).map(song => ({
-      ...song,
-      duration: formatDuration(song.duration)
-    }));
-    
+    const purchasedSongs = (user.purchasedSongs || [])
+      .slice(0, 4)
+      .map((song) => ({
+        ...song,
+        duration: formatDuration(song.duration)
+      }));
+
     // Format songsHistory
-    const songsHistory = (user.songsHistory || []).slice(0, 4).map(song => ({
+    const songsHistory = (user.songsHistory || []).slice(0, 4).map((song) => ({
       ...song,
       duration: formatDuration(song.duration)
     }));
 
     // Sort allTimeSong by plays descending and take top 4
     const enrichedAllTimeSongs = (user.allTimeSong || [])
-    .filter(entry => entry.song)
-    .sort((a, b) => b.plays - a.plays)
-    .slice(0, 4)
-    .map(entry => ({
-      ...entry.song,
-      duration: formatDuration(entry.song.duration),
-      plays: entry.plays,
-      date: entry.date
-    }));
-
- 
+      .filter((entry) => entry.song)
+      .sort((a, b) => b.plays - a.plays)
+      .slice(0, 4)
+      .map((entry) => ({
+        ...entry.song,
+        duration: formatDuration(entry.song.duration),
+        plays: entry.plays,
+        date: entry.date
+      }));
 
     const dashboardData = {
       _id: user._id,
@@ -95,7 +99,7 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
       purchasedSongs,
       songsHistory,
       allTimeSong: enrichedAllTimeSongs,
-      topGenre: (user.topGenre || []).filter(g => g.genre !== null),
+      topGenre: (user.topGenre || []).filter((g) => g.genre !== null),
       favArtist: user.favArtist || [],
       socialLinks: {
         facebook: user.facebook,
@@ -115,8 +119,6 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
   }
 });
 
-
-
 module.exports.getWeeklyActivityStats = asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
@@ -124,7 +126,9 @@ module.exports.getWeeklyActivityStats = asyncHandler(async (req, res) => {
     const user = await User.findById(userId).select('activityStats').lean();
 
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
     }
 
     const today = new Date();
@@ -132,7 +136,7 @@ module.exports.getWeeklyActivityStats = asyncHandler(async (req, res) => {
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 6); // 6 days before today (total 7 including today)
 
-    const weeklyStats = (user.activityStats || []).filter(stat => {
+    const weeklyStats = (user.activityStats || []).filter((stat) => {
       const statDate = new Date(stat.date);
       return statDate >= sevenDaysAgo && statDate <= today;
     });
@@ -150,8 +154,6 @@ module.exports.getWeeklyActivityStats = asyncHandler(async (req, res) => {
     });
   }
 });
-
-
 
 module.exports.addActivity = asyncHandler(async (req, res) => {
   const { userId, minutesSpent } = req.body;
@@ -183,4 +185,78 @@ module.exports.addActivity = asyncHandler(async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
+});
+
+module.exports.getSellerPurchaseStats = asyncHandler(async (req, res) => {
+  const { sellerId } = req.params; // Pass sellerId in route params
+
+  if (!mongoose.Types.ObjectId.isValid(sellerId)) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Invalid seller ID' });
+  }
+
+  const stats = await Sale.aggregate([
+    {
+      $match: {
+        sellerId: new mongoose.Types.ObjectId(sellerId)
+      }
+    },
+    {
+      $lookup: {
+        from: 'songs',
+        localField: 'songId',
+        foreignField: '_id',
+        as: 'song'
+      }
+    },
+    {
+      $unwind: '$song'
+    },
+    {
+      $group: {
+        _id: '$songId',
+        songTitle: { $first: '$song.title' },
+        coverImage: { $first: '$song.coverImage' },
+        totalSales: { $sum: 1 },
+        totalEarnings: { $sum: '$sellerEarning' }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        songs: {
+          $push: {
+            songId: '$_id',
+            songTitle: '$songTitle',
+            coverImage:'$coverImage',
+            totalSales: '$totalSales',
+            totalEarnings: '$totalEarnings'
+          }
+        },
+        totalSellerEarnings: { $sum: '$totalEarnings' },
+        totalSongsSold: { $sum: '$totalSales' }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        totalSellerEarnings: 1,
+        totalSongsSold: 1,
+        songs: 1
+      }
+    }
+  ]);
+
+  res.status(200).json({
+    success: true,
+    data:
+      stats.length > 0
+        ? stats[0]
+        : {
+            totalSellerEarnings: 0,
+            totalSongsSold: 0,
+            songs: []
+          }
+  });
 });

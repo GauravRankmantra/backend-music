@@ -27,21 +27,26 @@ router.put(
 );
 router.get('/artist', userController.getAllArtist);
 
-router.get('/new-users',userController.newUsers)
-router.post('/addPurchaseSong',auth,userController.addPurchaseSong)
-router.get('/artist/search',userController.getArtistSearch);
-router.get('/search',userController.searchArtist)
-router.get('/search/user',userController.searchUser)
+router.get('/new-users', userController.newUsers);
+router.post('/addPurchaseSong', auth, userController.addPurchaseSong);
+router.get('/artist/search', userController.getArtistSearch);
+router.get('/search', userController.searchArtist);
+router.get('/search/user', userController.searchUser);
+router.get('/withdrawal', auth, userController.getWithdrawalMethod);
+router.put('/withdrawal', auth, userController.addWithdrawalMethod);
+
+router.delete('/withdrawal', auth, userController.deleteWithdrawalMethod);
+
 router.post('/forgetPass', userController.forgetPassword);
 router.post('/verifyOtp', userController.verifyOtp);
-router.get('/gethistory',auth,userController.getHistory)
-router.post('/addHistory',auth,userController.addHistory)
-router.post("/check-email",userController.checkEmail)
-router.post("/get-otp",userController.getOtp)
+router.get('/gethistory', auth, userController.getHistory);
+router.post('/addHistory', auth, userController.addHistory);
+router.post('/check-email', userController.checkEmail);
+router.post('/get-otp', userController.getOtp);
 
-router.get("/getPurchasedSong",auth,userController.getPurchasedSong)
+router.get('/getPurchasedSong', auth, userController.getPurchasedSong);
 router.get('/featuredArtists', userController.featuredArtists);
-router.get('/artist:id',userController.getArtistDetail)
-router.get("/getUserSongs:id",userController.getSongByUserId)
+router.get('/artist:id', userController.getArtistDetail);
+router.get('/getUserSongs:id', userController.getSongByUserId);
 
 module.exports = router;
