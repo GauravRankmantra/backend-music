@@ -139,14 +139,14 @@ const userSchema = new mongoose.Schema(
     },
     favArtist: [
       {
-        type: mongoose.Schema.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
       }
     ],
     topGenre: [
       {
         genre: {
-          type: mongoose.Schema.ObjectId,
+          type: mongoose.Schema.Types.ObjectId,
           ref: 'Genre'
         },
         plays: Number
@@ -154,7 +154,7 @@ const userSchema = new mongoose.Schema(
     ],
     allTimeSong: [
       {
-        song: { type: mongoose.Schema.ObjectId, ref: 'Song' },
+        song: { type: mongoose.Schema.Types.ObjectId, ref: 'Song' },
         date: { type: Date, required: true },
         plays: Number
       }

@@ -135,95 +135,86 @@ module.exports.newUsers = asyncHandler(async (req, res, next) => {
 });
 module.exports.addHistory = asyncHandler(async (req, res) => {
   const { songId } = req.body;
-  const userId = req.user._id;
+  const userId = req.user?._id;
 
-  // Validate input
-  if (!userId || !songId) {
-    return res
-      .status(400)
-      .json({ message: 'User ID and Song ID are required' });
+  if (!mongoose.Types.ObjectId.isValid(songId)) {
+    return res.status(400).json({ message: 'Invalid Song ID format' });
   }
 
-  // Find the user by ID
-  const user = await User.findById(userId);
+  if (!userId) {
+    return res.status(401).json({ message: 'Unauthorized user' });
+  }
+
+  const [user, song] = await Promise.all([
+    User.findById(userId),
+    Song.findById(songId)
+  ]);
 
   if (!user) {
     return res.status(404).json({ message: 'User not found' });
   }
 
-  // Find the song by ID
-  const song = await Song.findById(songId);
-
   if (!song) {
     return res.status(404).json({ message: 'Song not found' });
   }
 
-  const genreExist =
-    user.topGenre && user.topGenre.length > 0
-      ? user.topGenre.some(
-          (entry) => entry.genre && entry.genre.toString() == song.genre
-        )
-      : false;
+  // ======= Update topGenre =======
+  const genreId = song.genre?.toString();
+  console.log(genreId);
 
-  console.log('song genre', song.genre);
-  console.log('top genre', user.topGenre[0].genre);
-  console.log(genreExist);
-
-  if (genreExist) {
-    const songToUpdate = user.topGenre.find(
-      (entry) => entry.genre && entry.genre.toString() === song.genre
+  if (genreId) {
+    const existingGenre = user.topGenre?.find(
+      (entry) => entry.genre?.toString() === genreId
     );
+    console.log(existingGenre);
 
-    if (songToUpdate) {
-      songToUpdate.plays = (songToUpdate.plays || 0) + 1;
-
-      await user.save();
+    if (existingGenre) {
+      existingGenre.plays = (existingGenre.plays || 0) + 1;
+      existingGenre.date = new Date();
+    } else {
+      user.topGenre.push({
+        genre: genreId,
+        plays: 1,
+        date: new Date()
+      });
     }
-  } else {
-    user.topGenre.push({ genre: song.genre, date: Date.now(), plays: 1 });
-    await user.save();
   }
 
-  const songExistsInAllTime =
-    user.allTimeSong && user.allTimeSong.length > 0
-      ? user.allTimeSong.some(
-          (entry) => entry.song && entry.song.toString() === songId
-        )
-      : false;
-  if (songExistsInAllTime) {
-    const songToUpdate = user.allTimeSong.find(
-      (entry) => entry.song && entry.song.toString() === songId
-    );
+  // ======= Update allTimeSong =======
+  const existingAllTime = user.allTimeSong?.find(
+    (entry) => entry.song?.toString() === songId
+  );
 
-    if (songToUpdate) {
-      songToUpdate.plays = (songToUpdate.plays || 0) + 1;
-
-      await user.save();
-    }
+  if (existingAllTime) {
+    existingAllTime.plays = (existingAllTime.plays || 0) + 1;
+    existingAllTime.date = new Date();
   } else {
-    user.allTimeSong.push({ song: songId, date: Date.now(), plays: 1 });
-    await user.save();
+    user.allTimeSong.push({
+      song: songId,
+      plays: 1,
+      date: new Date()
+    });
   }
 
-  const songExistsInHistory =
-    user.songsHistory && user.songsHistory.length > 0
-      ? user.songsHistory.some((entry) => entry.toString() === songId)
-      : false;
+  // ======= Update songsHistory (last 10 unique songs) =======
+  user.songsHistory = user.songsHistory || [];
+  const historyIndex = user.songsHistory.findIndex(
+    (entry) => entry.toString() === songId
+  );
 
-  if (!songExistsInHistory) {
+  if (historyIndex === -1) {
     user.songsHistory.push(songId);
-
     if (user.songsHistory.length > 10) {
-      user.songsHistory.shift();
+      user.songsHistory.shift(); // Remove oldest
     }
   }
 
+  // Save changes once
   await user.save();
 
-  // Send a success response
   res.status(200).json({
-    message: 'Song added to history & allTime',
-    history: user.history
+    message: 'Song successfully added to history and stats',
+    updated: true
   });
 });
 module.exports.getHistory = asyncHandler(async (req, res) => {

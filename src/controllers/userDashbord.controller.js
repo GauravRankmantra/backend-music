@@ -36,8 +36,13 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
         'title coverImage audioUrls duration artist album genre'
       )
       .populate('favArtist', 'fullName coverImage')
-      .populate('topGenre.genre', 'name image')
       .populate('songsHistory', 'title coverImage  audioUrls duration')
+      .populate({
+        path: 'topGenre.genre',
+        model: 'Genre',
+        select: 'name image'
+      })
+
       .populate(
         'allTimeSong.song',
         'title audioUrls artist coverImage duration'
@@ -99,7 +104,7 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
       purchasedSongs,
       songsHistory,
       allTimeSong: enrichedAllTimeSongs,
-      topGenre: (user.topGenre || []).filter((g) => g.genre !== null),
+      topGenre: user.topGenre,
       favArtist: user.favArtist || [],
       socialLinks: {
         facebook: user.facebook,
@@ -229,7 +234,7 @@ module.exports.getSellerPurchaseStats = asyncHandler(async (req, res) => {
           $push: {
             songId: '$_id',
             songTitle: '$songTitle',
-            coverImage:'$coverImage',
+            coverImage: '$coverImage',
             totalSales: '$totalSales',
             totalEarnings: '$totalEarnings'
           }
