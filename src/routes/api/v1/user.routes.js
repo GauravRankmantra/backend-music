@@ -41,6 +41,7 @@ router.post('/forgetPass', userController.forgetPassword);
 router.post('/verifyOtp', userController.verifyOtp);
 router.get('/gethistory', auth, userController.getHistory);
 router.post('/addHistory', auth, userController.addHistory);
+router.patch('/addVerifyReq',auth,userController.addVerifyReq)
 router.post('/check-email', userController.checkEmail);
 router.post('/get-otp', userController.getOtp);
 

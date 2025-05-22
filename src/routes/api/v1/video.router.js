@@ -37,7 +37,8 @@ router.post('/', uploadVideo.single('video'), async (req, res) => {
     }
 
     // Upload to Cloudinary
-    const result = await uploadFile(req.file.path, 'videos'); // Use a specific folder like 'videos'
+   const result = await uploadFile(req.file.path, 'video', 'videos');
+// Use a specific folder like 'videos'
     if (!result) {
       return res
         .status(500)
@@ -153,7 +154,7 @@ router.put('/:id', uploadVideo.single('video'), async (req, res) => {
       }
 
       // Upload new video to Cloudinary
-      const result = await uploadFile(req.file.path, 'videos');
+  const result = await uploadFile(req.file.path, 'video', 'videos');
       if (!result) {
         return res
           .status(500)

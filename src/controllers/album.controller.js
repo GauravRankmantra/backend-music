@@ -10,6 +10,12 @@ module.exports.getFeaturedAlbums = asyncHandler(async (req, res) => {
   try {
     const featuredAlbums = await Album.aggregate([
       {
+        $match: {
+          isFeatured: true
+        }
+      },
+
+      {
         $lookup: {
           from: 'users',
           localField: 'artist',
@@ -19,28 +25,64 @@ module.exports.getFeaturedAlbums = asyncHandler(async (req, res) => {
       },
 
       {
+        $unwind: '$artist'
+      },
+
+      {
         $lookup: {
           from: 'songs',
-          localField: 'songs',
-          foreignField: '_id',
-          as: 'songs'
+          localField: '_id', // album's _id
+          foreignField: 'album',
+          as: 'songsData'
         }
       },
 
       {
-        $unwind: '$artist'
+        $addFields: {
+          totalSongs: { $size: '$songsData' },
+
+          songs: '$songsData'
+        }
+      },
+
+      {
+        $project: {
+          title: 1,
+          releaseYear: 1,
+          coverImage: 1,
+          totalSongs: 1,
+          'artist.fullName': 1,
+
+          'songs.title': 1,
+          'songs.duration': 1,
+          createdAt: 1
+        }
+      },
+
+      {
+        $sort: { createdAt: -1 }
       }
     ]);
 
+    if (!featuredAlbums || featuredAlbums.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No featured albums found matching criteria.'
+      });
+    }
+
     res.status(200).json({
       success: true,
-      message: 'Featured album retrieved successfully.',
+      message: 'Featured albums retrieved successfully.',
       data: featuredAlbums
     });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: 'Error while fetching the albums', error });
+    console.error('Error while fetching featured albums:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching albums.',
+      error: error.message
+    });
   }
 });
 module.exports.getTrendingAlbums = asyncHandler(async (req, res) => {
@@ -693,19 +735,15 @@ module.exports.getAlumByUserId = asyncHandler(async (req, res) => {
     .json({ success: true, message: 'Album fetch ed successfully', albums });
 });
 
-
-
 module.exports.getTotalAlbums = asyncHandler(async (req, res) => {
   try {
     const totalAlbum = await Album.countDocuments();
     res.status(200).json({ total: totalAlbum }); // Send a JSON response with status 200 (OK)
   } catch (error) {
     console.error('Error while fetching total songs:', error); // It's better to use console.error for errors
-    res
-      .status(500)
-      .json({
-        message: 'Failed to fetch total number of songs',
-        error: error.message
-      }); 
+    res.status(500).json({
+      message: 'Failed to fetch total number of songs',
+      error: error.message
+    });
   }
 });

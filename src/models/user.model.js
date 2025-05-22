@@ -75,6 +75,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    verificationState: {
+      type: String,
+      enum: ['rejected', 'no', 'pending'],
+      default: 'no'
+    },
     bio: {
       type: String,
       trim: true,

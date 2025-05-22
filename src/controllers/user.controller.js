@@ -217,6 +217,33 @@ module.exports.addHistory = asyncHandler(async (req, res) => {
     updated: true
   });
 });
+
+module.exports.addVerifyReq = asyncHandler(async (req, res) => {
+  const user = req.user;
+
+  if (!user) {
+    return res
+      .status(401)
+      .json({ message: 'User not authenticated or not available.' });
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    user._id,
+    { verificationState: 'pending' },
+    { new: true }
+  );
+
+  if (!updatedUser) {
+    return res.status(404).json({
+      message: 'User not found or unable to update verification state.'
+    });
+  }
+
+  res.status(200).json({
+    message: 'Verification request submitted successfully.',
+    user: updatedUser
+  });
+});
 module.exports.getHistory = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
