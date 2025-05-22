@@ -162,21 +162,20 @@ module.exports.getWeeklyActivityStats = asyncHandler(async (req, res) => {
 
 module.exports.addActivity = asyncHandler(async (req, res) => {
   const { userId, minutesSpent } = req.body;
-  console.log(userId, minutesSpent);
   if (!userId || !minutesSpent) {
     return res.status(400).json({ message: 'Missing userId or minutesSpent' });
   }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
 
   try {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Check if an entry for today exists
     const existingStat = user.activityStats.find(
-      (stat) => new Date(stat.date).toDateString() === today.toDateString()
+      (stat) => new Date(stat.date).setHours(0, 0, 0, 0) === todayTime
     );
 
     if (existingStat) {
@@ -191,6 +190,7 @@ module.exports.addActivity = asyncHandler(async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 module.exports.getSellerPurchaseStats = asyncHandler(async (req, res) => {
   const { sellerId } = req.params; // Pass sellerId in route params
