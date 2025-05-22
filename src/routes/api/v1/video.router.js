@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { uploadVideo } = require('../../../middlelwares/multer.middleware.js'); // Assuming this path is correct
 const { uploadFile, destroyFile } = require('../../../services/cloudinary.js'); // Assuming this path is correct
-const Video = require('../../../models/Video.model.js'); // Updated model name
+const Video = require("../../../models/video.model.js"); // Updated model name
 const { v2: cloudinary } = require('cloudinary'); // Ensure cloudinary is configured globally or passed via services
 
 // Ensure Cloudinary is configured - place this in your main app.js or config file
