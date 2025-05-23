@@ -64,13 +64,13 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
       .slice(0, 4)
       .map((song) => ({
         ...song,
-        duration: formatDuration(song.duration)
+        duration: song.duration
       }));
 
     // Format songsHistory
     const songsHistory = (user.songsHistory || []).slice(0, 4).map((song) => ({
       ...song,
-      duration: formatDuration(song.duration)
+      duration: song.duration
     }));
 
     // Sort allTimeSong by plays descending and take top 4
@@ -80,7 +80,7 @@ module.exports.getDashbordInfo = asyncHandler(async (req, res) => {
       .slice(0, 4)
       .map((entry) => ({
         ...entry.song,
-        duration: formatDuration(entry.song.duration),
+        duration: entry.song.duration,
         plays: entry.plays,
         date: entry.date
       }));

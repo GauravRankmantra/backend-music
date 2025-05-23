@@ -158,7 +158,7 @@ module.exports.addLike = asyncHandler(async (req, res) => {
       const totalLikes = await Like.countDocuments({ likedBy });
       const formattedLikedSongs = likedSongs.map(song => ({
         ...song,
-        duration: formatDuration(song.duration), // Format the duration
+        duration: song.duration, // Format the duration
       }));
   
       res.status(200).json({

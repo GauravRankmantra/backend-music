@@ -3,7 +3,6 @@ const router = express.Router();
 const Stripe = require('stripe');
 const User = require('../../../models/user.model.js');
 
-// ✅ Replace with your actual secret key from Stripe dashboard
 const stripe = new Stripe(
   'sk_test_51RQRPEDACnPx6ZPLo8nE5f7fMweHH7WzZ8q6xue5oAmLqZ8guyVxzZ3DrTvLoqff8GaoM8JJxPY7Yyzxh57yHgmi00mGsivtkB'
 );
@@ -125,14 +124,22 @@ router.post('/onboard-artist', async (req, res) => {
       type: 'express',
       email
     });
+    if (!account)
+      return res
+        .status(400)
+        .json({ message: 'Stripe connection failed or exited by user ' });
 
-    // 2. Generate an onboarding 
+    // 2. Generate an onboarding
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
       refresh_url: 'https://odgmusic.com/dashboard/withdrawal',
       return_url: 'https://odgmusic.com/dashboard/withdrawal',
       type: 'account_onboarding'
     });
+    if (!accountLink)
+      return res
+        .status(400)
+        .json({ message: 'Stripe connection failed or exited by user ' });
 
     // 3. Save `account.id` (e.g., acct_1RBVX...) in your DB under the artist user
     // You should associate this with the artist's account

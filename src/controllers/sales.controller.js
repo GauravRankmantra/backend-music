@@ -83,7 +83,7 @@ module.exports.getAllSales = async (req, res) => {
       })
       .populate({
         path: 'sellerId',
-        select: '_id fullName'
+        select: '_id fullName admin'
       });
 
     res.status(200).json(sales);

@@ -544,7 +544,7 @@ module.exports.getPurchasedSong = asyncHandler(async (req, res) => {
         .json({ message: 'No purchased songs found', purchasedSongs: [] });
     }
 
-    const pSongs = await Song.find({ _id: { $in: purchasedSongIds } })
+    const songs = await Song.find({ _id: { $in: purchasedSongIds } })
       .populate({
         path: 'artist',
         select: 'fullName bio'
@@ -554,14 +554,11 @@ module.exports.getPurchasedSong = asyncHandler(async (req, res) => {
         select: 'title coverImage'
       });
 
-    const purchasedSongs = pSongs.map((song) => ({
-      ...song.toObject(),
-      durationFormatted: formatDuration(song.duration)
-    }));
+
 
     return res.status(200).json({
       success: true,
-      purchasedSongs
+      songs
     });
   } catch (error) {
     console.error('Error fetching purchased songs:', error);

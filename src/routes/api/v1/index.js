@@ -21,10 +21,11 @@ const userDashbordRouter = require('./userDashbord.router.js');
 const webUpdateRouter = require('./webUpdate.router.js');
 const ticketRouter = require('./ticket.router.js');
 const userStatsRouter = require('./userStats.router.js');
-const salesRouter = require("./sales.router.js")
-const AdminVideo = require("./video.router.js")
-const Seller = require('./seller.router.js')
-const messageRouter = require("./message.router.js")
+const salesRouter = require('./sales.router.js');
+const AdminVideo = require('./video.router.js');
+const Seller = require('./seller.router.js');
+const messageRouter = require('./message.router.js');
+const footerRouter = require('./footer.router.js');
 
 router.use('/user', userRouter);
 router.use('/userDashbord', userDashbordRouter);
@@ -45,10 +46,10 @@ router.use('/privacy', privacyRouter);
 router.use('/terms', termsRouter);
 router.use('/web', webUpdateRouter);
 router.use('/userStats', userStatsRouter);
-router.use('/sale',salesRouter)
-router.use('/AdminVideo',AdminVideo)
-router.use('/seller',Seller)
-router.use('/message', messageRouter)
-
+router.use('/sale', salesRouter);
+router.use('/AdminVideo', AdminVideo);
+router.use('/seller', Seller);
+router.use('/message', messageRouter);
+router.use('/footer', footerRouter);
 
 module.exports = router;
