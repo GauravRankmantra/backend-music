@@ -5,18 +5,6 @@ const { uploadFile, destroyFile } = require('../../../services/cloudinary.js'); 
 const Video = require("../../../models/video.model.js"); // Updated model name
 const { v2: cloudinary } = require('cloudinary'); // Ensure cloudinary is configured globally or passed via services
 
-// Ensure Cloudinary is configured - place this in your main app.js or config file
-// cloudinary.config({
-//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-//   api_key: process.env.CLOUDINARY_API_KEY,
-//   api_secret: process.env.CLOUDINARY_API_SECRET
-// });
-
-/**
- * @route POST /api/v1/AdminVideo
- * @desc Upload a new video
- * @access Admin (add authentication middleware later if needed)
- */
 router.post('/', uploadVideo.single('video'), async (req, res) => {
   try {
     const { title, description } = req.body;
