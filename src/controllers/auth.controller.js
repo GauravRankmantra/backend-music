@@ -1,6 +1,7 @@
 const validator = require('validator');
 const User = require('../models/user.model.js');
 const { asyncHandler } = require('../utils/asyncHandler');
+const Like = require('../models/like.model.js');
 const passport = require('passport');
 const { model } = require('mongoose');
 
@@ -42,10 +43,23 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Find user by email OR username
-const user = await User.findOne({
-  $or: [{ email: trimmedEmail }, { userName: trimmedUserName }]
-}).select(' -activityStats -songsThisMonth -allTimeSong -topGenre -songsHistory');
+  const user2 = await User.findOne({
+    $or: [{ email: trimmedEmail }, { userName: trimmedUserName }]
+  }).select('-activityStats -songsThisMonth -allTimeSong -topGenre');
+
+  if (!user2) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  // Now fetch liked songs from Likes collection
+  const likes = await Like.find({ likedBy: user2._id }).select('song');
+  const likedSongs = likes.map((like) => like.song); // Array of song IDs
+
+  // Attach liked songs to user object (optional)
+  const user = {
+    ...user2.toObject(),
+    likedSongs
+  };
 
   if (!user) {
     return res.status(401).json({
@@ -55,7 +69,7 @@ const user = await User.findOne({
   }
 
   // Validate password
-  const isPasswordValid = await user.validatePassword(password);
+  const isPasswordValid = await user2.validatePassword(password);
   if (!isPasswordValid) {
     return res.status(401).json({
       success: false,
@@ -64,7 +78,7 @@ const user = await User.findOne({
   }
 
   // Generate Access & Refresh Tokens
-  const { accessToken, refreshToken } = await generateTokens(user);
+  const { accessToken, refreshToken } = await generateTokens(user2);
 
   // res.setHeader('Authorization', `Bearer ${accessToken}`);
 
@@ -86,10 +100,7 @@ const user = await User.findOne({
   return res.status(200).json({
     success: true,
     message: 'User Logged in Successfully',
-    user: {
-      ...user.toObject(),
-      password: undefined
-    }
+    user: user
   });
 });
 module.exports.AdminLogIn = asyncHandler(async (req, res, next) => {

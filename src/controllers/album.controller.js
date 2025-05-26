@@ -206,7 +206,36 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
       {
         $addFields: {
           totalSongs: { $size: '$songs' }, // Counting number of songs
-          totalDuration: { $sum: '$songs.duration' } // Summing up duration of all songs
+          totalDuration: {
+            $sum: {
+              $map: {
+                input: '$songs',
+                as: 'song',
+                in: {
+                  $add: [
+                    {
+                      $multiply: [
+                        {
+                          $toInt: {
+                            $arrayElemAt: [
+                              { $split: ['$$song.duration', ':'] },
+                              0
+                            ]
+                          }
+                        }, // minutes
+                        60
+                      ]
+                    },
+                    {
+                      $toInt: {
+                        $arrayElemAt: [{ $split: ['$$song.duration', ':'] }, 1]
+                      }
+                    } // seconds
+                  ]
+                }
+              }
+            }
+          }
         }
       },
 
