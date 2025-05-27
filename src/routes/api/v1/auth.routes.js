@@ -20,7 +20,7 @@ const generateTokens = async (user, res) => {
 };
 const {
   auth,
-  checkToken
+  checkToken,checkAdminToken
 } = require('../../../middlelwares/auth.middleware.js');
 
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -94,6 +94,7 @@ router.get(
 );
 
 router.get('/', checkToken);
+router.get('/checkAdminToken',checkAdminToken)
 router.get('/profile', auth, authController.getUserProfile);
 router.post('/logout', auth, authController.logOut);
 
