@@ -198,7 +198,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
           artistDetails: { $first: '$artistDetails' },
           genreDetails: { $first: '$genreDetails' },
           comments: { $first: '$comments' },
-          songs: { $push: '$songs' } // Reconstruct the songs array after unwinding
+          songs: { $push: '$songs' } 
         }
       },
 
@@ -392,50 +392,72 @@ module.exports.filterAlbums = asyncHandler(async (req, res) => {
   }
 });
 
+
 module.exports.getTop15 = asyncHandler(async (req, res) => {
   try {
-    const top15 = await Album.aggregate([
-      // Step 1: Lookup to join with the songs collection
-      {
-        $lookup: {
-          from: 'songs',
-          localField: 'songs',
-          foreignField: '_id',
-          as: 'albumSongs'
-        }
-      },
-      // Step 2: Unwind the albumSongs array
-      { $unwind: '$albumSongs' },
+    const albums = await Album.find({})
+      .sort({ createdAt: -1 }) // Latest first
+      .limit(15)
+      .populate('artist', 'fullName') // Optional: include artist full name
+      .populate('genre', 'name');     // Optional: include genre name
 
-      // Step 3: Group by album and sum the total plays for all its songs
-      {
-        $group: {
-          _id: '$_id',
-          title: { $first: '$title' },
-          artist: { $first: '$artist' },
-          coverImage: { $first: '$coverImage' },
-          totalPlays: { $sum: '$albumSongs.plays' } // Sum the plays for each song in the album
-        }
-      },
-
-      { $sort: { totalPlays: -1 } },
-
-      // Step 5: Limit the results to the top 15 albums
-      { $limit: 15 }
-    ]);
-
-    // Send the top 15 albums as the response
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      data: top15
+      data: albums,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message
+      message: 'Failed to fetch top albums',
+      error,
     });
   }
 });
+
+// module.exports.getTop15 = asyncHandler(async (req, res) => {
+//   try {
+//     const top15 = await Album.aggregate([
+//       // Step 1: Lookup to join with the songs collection
+//       {
+//         $lookup: {
+//           from: 'songs',
+//           localField: 'songs',
+//           foreignField: '_id',
+//           as: 'albumSongs'
+//         }
+//       },
+//       // Step 2: Unwind the albumSongs array
+//       { $unwind: '$albumSongs' },
+
+      
+//       {
+//         $group: {
+//           _id: '$_id',
+//           title: { $first: '$title' },
+//           artist: { $first: '$artist' },
+//           coverImage: { $first: '$coverImage' },
+//           totalPlays: { $sum: '$albumSongs.plays' } // Sum the plays for each song in the album
+//         }
+//       },
+
+//       { $sort: { totalPlays: -1 } },
+
+//       // Step 5: Limit the results to the top 15 albums
+//       { $limit: 15 }
+//     ]);
+
+//     // Send the top 15 albums as the response
+//     res.status(200).json({
+//       success: true,
+//       data: top15
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message
+//     });
+//   }
+// });
 module.exports.getAllAlbums = asyncHandler(async (req, res) => {
   try {
     const allAlbums = await Album.aggregate([
