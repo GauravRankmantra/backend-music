@@ -133,10 +133,10 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
 
   try {
     const detail = await Album.aggregate([
-      // Step 1: Match the album by its ID
+ 
       { $match: { _id: albumId } },
 
-      // Step 2: Populate artist and genre
+    
       {
         $lookup: {
           from: 'users',
@@ -154,7 +154,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
         }
       },
 
-      // Step 3: Join with songs collection to get album's songs
+     
       {
         $lookup: {
           from: 'songs',
@@ -273,7 +273,7 @@ module.exports.getAlbumDetail = asyncHandler(async (req, res) => {
       {
         $project: {
           _id: 1,
-          title: 1,
+          title: '$albumTitle',
           company: 1,
           releaseDate: 1,
           coverImage: 1,
