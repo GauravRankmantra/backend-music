@@ -205,4 +205,22 @@ router.get('/stripe/session/:id', async (req, res) => {
   }
 });
 
+
+router.post("/donation", async (req, res) => {
+  const { amount } = req.body;
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: "usd",
+      description: "ODG Music Donation",
+    });
+
+    res.send({ clientSecret: paymentIntent.client_secret });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Payment initiation failed" });
+  }
+});
+
 module.exports = router;
