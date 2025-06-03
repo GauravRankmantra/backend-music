@@ -26,8 +26,10 @@ const AdminVideo = require('./video.router.js');
 const Seller = require('./seller.router.js');
 const messageRouter = require('./message.router.js');
 const footerRouter = require('./footer.router.js');
-const donationRouter = require('./donation.router.js')
-const sponsorRouter = require('./sponsor.router.js')
+const donationRouter = require('./donation.router.js');
+const sponsorRouter = require('./sponsor.router.js');
+const subscriberRouter = require('./subscriber.router.js');
+const songMailRouter = require('./songMail.router.js')
 
 router.use('/user', userRouter);
 router.use('/userDashbord', userDashbordRouter);
@@ -53,7 +55,9 @@ router.use('/AdminVideo', AdminVideo);
 router.use('/seller', Seller);
 router.use('/message', messageRouter);
 router.use('/footer', footerRouter);
-router.use('/sponsor',sponsorRouter)
-router.use('/donation',donationRouter)
+router.use('/sponsor', sponsorRouter);
+router.use('/donation', donationRouter);
+router.use('/subscribe', subscriberRouter);
+router.use('/songMail',songMailRouter)
 
 module.exports = router;
