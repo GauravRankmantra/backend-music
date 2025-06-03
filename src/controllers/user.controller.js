@@ -160,13 +160,13 @@ module.exports.addHistory = asyncHandler(async (req, res) => {
 
   // ======= Update topGenre =======
   const genreId = song.genre?.toString();
-  console.log(genreId);
+
 
   if (genreId) {
     const existingGenre = user.topGenre?.find(
       (entry) => entry.genre?.toString() === genreId
     );
-    console.log(existingGenre);
+
 
     if (existingGenre) {
       existingGenre.plays = (existingGenre.plays || 0) + 1;
@@ -273,7 +273,7 @@ module.exports.getHistory = asyncHandler(async (req, res) => {
 });
 module.exports.checkEmail = asyncHandler(async (req, res) => {
   const { email } = req.body;
-  console.log(email);
+ 
 
   if (!email) {
     return res
@@ -393,7 +393,7 @@ module.exports.changePassword = asyncHandler(async (req, res, next) => {
 });
 module.exports.updateUser = asyncHandler(async (req, res) => {
   const id = req.params.id;
-  console.log(id);
+
   const {
     fullName,
     email,
@@ -613,7 +613,7 @@ module.exports.verifyOtp = asyncHandler(async (req, res) => {
   validateUser.otp = undefined;
   validateUser.otpExpires = undefined;
   await validateUser.save();
-  console.log('After storing user in db : ', validateUser);
+
   return res.status(200).json({
     success: true,
     message: 'Otp validate success and password updated'

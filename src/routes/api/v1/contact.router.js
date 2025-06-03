@@ -86,7 +86,7 @@ router.get('/contact-info', async (req, res) => {
   });
   // PUT /api/contact-info/:id
   router.put('/contact-info/:id', async (req, res) => {
-    console.log(req.body)
+
     const updated = await ContactInfo.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updated);
   });

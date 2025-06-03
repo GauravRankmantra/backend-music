@@ -10,7 +10,7 @@ router.post('/log', trafficController.logTraffic);
 
 
 router.post('/dummy', async (req, res) => {
-  console.log("inside dummy")
+
   try {
  
     const { ip, userAgent, createdAt } = req.body;

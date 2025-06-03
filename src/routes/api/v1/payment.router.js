@@ -71,7 +71,7 @@ router.post('/create-checkout-session-admin', async (req, res) => {
   try {
     const { products } = req.body;
 
-    console.log('products', products);
+   
 
     if (!products || !Array.isArray(products)) {
       return res.status(400).json({ error: 'Invalid products format' });

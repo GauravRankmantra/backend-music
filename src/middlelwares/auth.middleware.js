@@ -74,7 +74,7 @@ module.exports.checkAdminToken = asyncHandler(async (req, res) => {
     Pragma: 'no-cache',
     Expires: '0'
   });
-  console.log("cookies ",req.cookies);
+
   try {
     const { accessToken } = req.cookies;
 

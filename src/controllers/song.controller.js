@@ -8,6 +8,14 @@ const moment = require('moment');
 const mongoose = require('mongoose');
 const formatDuration = require('../utils/formateDuration.js');
 
+const Subscriber = require('../models/subscriber.model.js');
+
+const sgMail = require('@sendgrid/mail');
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+const BASE_UNSUBSCRIBE_URL = 'https://odgmusic.com';
+
 // function formatDuration(duration) {
 //   if (duration < 10) {
 //     // Assume the value is in minutes
@@ -22,6 +30,72 @@ const formatDuration = require('../utils/formateDuration.js');
 //     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 //   }
 // }
+
+const sendNewSongNotification = async (songName, coverImage, listenLink) => {
+  try {
+    const subscribers = await Subscriber.find();
+    console.log(
+      `[Email Notification] Found ${subscribers.length} active subscribers.`
+    );
+
+    if (subscribers.length === 0) {
+      console.log(
+        '[Email Notification] No active subscribers found to send email to.'
+      );
+      return { success: true, message: 'No subscribers to notify.' };
+    }
+
+    const personalizations = subscribers.map((subscriber) => ({
+      to: [{ email: subscriber.email }],
+      dynamicTemplateData: {
+        subscriberName: subscriber.name || 'Valued Subscriber',
+        songName: songName,
+        coverImage: coverImage,
+        listenLink: listenLink,
+        unsubscribeLink: `${BASE_UNSUBSCRIBE_URL}`,
+        currentYear: new Date().getFullYear()
+      }
+    }));
+
+    const msg = {
+      from: process.env.SENDGRID_SENDER_EMAIL,
+      templateId: process.env.SENDGRID_TEMPLATE_ID,
+      personalizations: personalizations
+    };
+
+    await sgMail.send(msg);
+
+    console.log(
+      `[Email Notification] Successfully sent email for "${songName}" to ${subscribers.length} subscribers.`
+    );
+    return {
+      success: true,
+      message: 'Emails initiated successfully.',
+      sentCount: subscribers.length
+    };
+  } catch (error) {
+    console.error(
+      '[Email Notification] Error sending emails with SendGrid:',
+      error
+    );
+    if (error.response && error.response.body) {
+      console.error(
+        '[Email Notification] SendGrid API Error Response:',
+        error.response.body
+      );
+      return {
+        success: false,
+        message: 'SendGrid API error.',
+        errorDetails: error.response.body.errors || error.response.body
+      };
+    }
+    return {
+      success: false,
+      message: 'Internal email sending error.',
+      errorDetails: error.message
+    };
+  }
+};
 
 module.exports.uploadSong = asyncHandler(async (req, res) => {
   const { body, files } = req;
@@ -145,6 +219,23 @@ module.exports.uploadSong = asyncHandler(async (req, res) => {
       }
     }
   ]);
+
+  const songName = body.title;
+  const coverImage = coverImageUrl;
+  const listenLink = `https://odgmusic.com/song/${newSong._id}`;
+
+  if (req.body.admin) {
+    sendNewSongNotification(songName, coverImage, listenLink)
+      .then((emailResult) => {
+        console.log('Email notification process summary:', emailResult);
+      })
+      .catch((emailError) => {
+        console.error(
+          'Unhandled error in email notification promise chain:',
+          emailError
+        );
+      });
+  }
 
   // Send the response back
   res.status(201).json({
@@ -631,42 +722,41 @@ module.exports.getSongInfo = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   try {
-    console.log('Fetching song with ID using populate:', id);
+  
     const song = await Song.findById(id)
       .populate({
         path: 'album',
-        select: '_id title coverImage', // Include album details you need
+        select: '_id title coverImage' // Include album details you need
       })
       .populate({
         path: 'artist',
-        select: '_id fullName stripeId paypalId admin',
+        select: '_id fullName stripeId paypalId admin'
       })
       .populate({
         path: 'genre',
-        select: '_id name',
+        select: '_id name'
       });
 
     if (song) {
       res.status(200).json({
         success: true,
         data: song,
-        message: 'Song details retrieved successfully.',
+        message: 'Song details retrieved successfully.'
       });
     } else {
       res.status(404).json({
         success: false,
-        message: 'Song not found.',
+        message: 'Song not found.'
       });
     }
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Server error. Could not retrieve song details.',
-      error: error.message,
+      error: error.message
     });
   }
 });
-
 
 module.exports.getSongByGenre = asyncHandler(async (req, res) => {
   try {
@@ -854,11 +944,9 @@ module.exports.getTotalSongs = asyncHandler(async (req, res) => {
     res.status(200).json({ total: totalSongs }); // Send a JSON response with status 200 (OK)
   } catch (error) {
     console.error('Error while fetching total songs:', error); // It's better to use console.error for errors
-    res
-      .status(500)
-      .json({
-        message: 'Failed to fetch total number of songs',
-        error: error.message
-      }); 
+    res.status(500).json({
+      message: 'Failed to fetch total number of songs',
+      error: error.message
+    });
   }
 });

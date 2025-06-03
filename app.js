@@ -5,8 +5,7 @@ const passport = require('passport');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const cors = require('cors');
-const ejs = require('ejs');
-const path = require('path');
+
 
 
 const app = express();
@@ -30,8 +29,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(express.static('public'));
 
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
 
 const allowedDomains = [
   'http://localhost:5173',

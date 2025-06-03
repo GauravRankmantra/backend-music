@@ -769,7 +769,7 @@ module.exports.getAlbumSearch = asyncHandler(async (req, res) => {
 module.exports.getAlumByUserId = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  console.log(id);
+
 
   if (!id)
     return res.status(400).json({ success: false, message: 'Id not provided' });

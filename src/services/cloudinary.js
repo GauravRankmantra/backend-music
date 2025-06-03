@@ -22,7 +22,7 @@ const uploadFile = async (filePath, resourceType = 'auto', folder = null) => {
 
     const result = await cloudinary.uploader.upload(filePath, options);
 
-    console.log('result cloudnery ', result);
+
 
     fs.unlinkSync(filePath); // Clean up local file
     return result;
