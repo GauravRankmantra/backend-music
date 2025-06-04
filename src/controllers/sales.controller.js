@@ -13,7 +13,8 @@ module.exports.createSale = async (req, res) => {
       amountReceved, // Net from Stripe
       currency,
       stripeChargeId,
-      stripeId
+      stripeId,
+      receiptUrl
     } = req.body;
 
     // Validate required fields
@@ -54,6 +55,7 @@ module.exports.createSale = async (req, res) => {
       amountReceved,
       sellerEarning,
       adminEarning,
+      receiptUrl,
       currency: currency || 'USD',
       stripeChargeId,
       stripeId

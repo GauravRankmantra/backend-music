@@ -50,9 +50,12 @@ const salesSchema = new mongoose.Schema(
       type: String,
       require: true
     },
+    receiptUrl: {
+      type: String
+    },
     payoutStatus: {
       type: String,
-      enum: ['pending', 'paid','rejected'],
+      enum: ['pending', 'paid', 'rejected'],
       default: 'pending'
     },
     payoutDate: {
