@@ -4,7 +4,7 @@ const Stripe = require('stripe');
 const User = require('../../../models/user.model.js');
 
 const stripe = new Stripe(
-  'sk_test_51RQRPEDACnPx6ZPLo8nE5f7fMweHH7WzZ8q6xue5oAmLqZ8guyVxzZ3DrTvLoqff8GaoM8JJxPY7Yyzxh57yHgmi00mGsivtkB'
+  'sk_test_51ATmKHDDS4z6YL4JHf7lHAlud5gERC8DhJDj316h9IR87kYUCoA7YuRShrzVHgtyJ618spYGmYJVYsWGog6rbuYq00mDBiEJko'
 );
 
 router.post('/create-checkout-session', async (req, res) => {
