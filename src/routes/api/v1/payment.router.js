@@ -171,6 +171,8 @@ router.get('/stripe/session/:id', async (req, res) => {
     }
 
     const charge = await stripe.charges.retrieve(chargeId);
+    const receiptUrl = charge.receipt_url;
+
     const balanceTransaction = await stripe.balanceTransactions.retrieve(
       charge.balance_transaction
     );
@@ -178,6 +180,7 @@ router.get('/stripe/session/:id', async (req, res) => {
     res.status(200).json({
       songId: session.metadata.songId,
       album: session.metadata.album,
+      receiptUrl,
       paymentInfo: {
         amount_received: paymentIntent.amount_received / 100,
         currency: paymentIntent.currency,
