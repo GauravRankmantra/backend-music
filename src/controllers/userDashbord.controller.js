@@ -166,22 +166,23 @@ module.exports.addActivity = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Missing userId or minutesSpent' });
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayTime = today.getTime();
+  const today = new Date().toDateString();
 
   try {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const existingStat = user.activityStats.find(
-      (stat) => new Date(stat.date).setHours(0, 0, 0, 0) === todayTime
+      (stat) => new Date(stat.date).toDateString() === today
     );
+
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
 
     if (existingStat) {
       existingStat.minutesSpent += minutesSpent;
     } else {
-      user.activityStats.push({ date: today, minutesSpent });
+      user.activityStats.push({ date: midnight, minutesSpent });
     }
 
     await user.save();
@@ -190,7 +191,6 @@ module.exports.addActivity = asyncHandler(async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
-
 
 module.exports.getSellerPurchaseStats = asyncHandler(async (req, res) => {
   const { sellerId } = req.params; // Pass sellerId in route params
