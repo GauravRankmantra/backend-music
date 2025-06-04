@@ -53,7 +53,7 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
   const userAvatar = files?.avatar || '';
   const userCoverImage = files?.coverImage || '';
 
-  const avatar = await uploadFile(userAvatar[0]?.path);
+  // const avatar = await uploadFile(userAvatar[0]?.path);
   const coverImage = await uploadFile(userCoverImage[0]?.path || '');
   try {
     const user = new User({
@@ -66,7 +66,7 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
       isVerified,
       popularity,
       admin,
-      avatar: avatar?.url || '',
+      avatar:'',
       coverImage: coverImage?.url || ''
     });
     if (!user) return res.status(500).json({ message: 'user creation failed' });
