@@ -1,70 +1,89 @@
 const mongoose = require('mongoose');
 
-const salesSchema = new mongoose.Schema(
+const feeDetailSchema = new mongoose.Schema(
   {
-    songId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Song',
-      required: true
-    },
+    amount: { type: Number, required: true },
+    application: { type: String, default: null },
+    currency: { type: String },
+    description: { type: String },
+    type: { type: String }
+  },
+  { _id: false }
+);
+
+const saleSchema = new mongoose.Schema(
+  {
+    // Buyer & song info
     buyerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
+      ref: 'User'
     },
     sellerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
+      ref: 'User'
     },
-    amountPaid: {
-      type: Number,
-      required: true
+    songId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Song'
     },
-    platformShare: {
-      type: Number,
-      required: true
-    },
-    amountReceved: {
-      type: Number,
-      required: true
-    },
+    album: String,
 
-    sellerEarning: {
-      type: Number,
-      required: true
-    },
-    adminEarning: {
-      type: Number,
-      required: true
-    },
-    currency: {
-      type: String,
-      default: 'USD'
-    },
-    stripeChargeId: {
-      type: String,
-      required: true
-    },
-    stripeId: {
-      type: String,
-      require: true
-    },
-    receiptUrl: {
-      type: String
-    },
-    payoutStatus: {
-      type: String,
-      enum: ['pending', 'paid', 'rejected'],
-      default: 'pending'
-    },
-    payoutDate: {
-      type: Date
-    }
+    // Earning breakdown
+    adminEarning: Number,
+    sellerEarning: Number,
+
+    currency: String,
+    exchangeRate: Number,
+
+    // Receipt and Stripe reference IDs
+    receiptUrl: String,
+    stripeChargeId: String,
+    stripeId: String,
+
+    // Buyer details
+    buyerEmail: String,
+    buyerCountry: String,
+    cardLast4: String,
+    cardBrand: String,
+    cardNetwork: String,
+
+    // Payment details
+    paymentIntentId: String,
+    customerFacingAmount: String,
+    customerFacingCurrency: String,
+    amountReceived: String,
+    paymentStatus: String,
+    paymentMethodType: String,
+    receiptEmail: String,
+    createdTimestamp: Number,
+    createdDateTime: Date,
+    latestChargeId: String,
+    description: String,
+    customer: mongoose.Schema.Types.Mixed,
+    captureMethod: String,
+
+    // Transaction details
+    balanceTransactionId: String,
+    processedAmount: String,
+    processedCurrency: String,
+    netAmount: String,
+    feeAmount: String,
+    feeCurrency: String,
+    originalCurrency: String,
+    convertedCurrency: String,
+    balanceType: String,
+    availableOnTimestamp: Number,
+    availableOnDateTime: Date,
+    transactionCreatedTimestamp: Number,
+    transactionCreatedDateTime: Date,
+    reportingCategory: String,
+    transactionStatus: String,
+    transactionType: String,
+    feeDetails: [feeDetailSchema]
   },
   {
     timestamps: true
   }
 );
 
-module.exports = mongoose.model('Sales', salesSchema);
+module.exports = mongoose.model('Sale', saleSchema);

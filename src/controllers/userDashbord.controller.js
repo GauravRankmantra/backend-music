@@ -143,7 +143,7 @@ module.exports.getWeeklyActivityStats = asyncHandler(async (req, res) => {
 
     const weeklyStats = (user.activityStats || []).filter((stat) => {
       const statDate = new Date(stat.date);
-      return statDate >= sevenDaysAgo && statDate <= today;
+      return statDate >= sevenDaysAgo;
     });
 
     res.status(200).json({

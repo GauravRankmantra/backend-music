@@ -6,6 +6,10 @@ const User = require('../../../models/user.model.js');
 const stripe = new Stripe(
   'sk_test_51ATmKHDDS4z6YL4JHf7lHAlud5gERC8DhJDj316h9IR87kYUCoA7YuRShrzVHgtyJ618spYGmYJVYsWGog6rbuYq00mDBiEJko'
 );
+const formatUnixTimestamp = (timestamp) => {
+  if (!timestamp) return null;
+  return new Date(timestamp * 1000).toISOString();
+};
 
 router.post('/create-checkout-session', async (req, res) => {
   try {
@@ -71,8 +75,6 @@ router.post('/create-checkout-session-admin', async (req, res) => {
   try {
     const { products } = req.body;
 
-   
-
     if (!products || !Array.isArray(products)) {
       return res.status(400).json({ error: 'Invalid products format' });
     }
@@ -115,6 +117,100 @@ router.post('/create-checkout-session-admin', async (req, res) => {
   }
 });
 
+router.get('/stripe/session/:id', async (req, res) => {
+  try {
+    const session = await stripe.checkout.sessions.retrieve(req.params.id, {
+      expand: ['payment_intent']
+    });
+
+    const paymentIntent = session.payment_intent;
+    const chargeId = paymentIntent.latest_charge;
+
+    if (!chargeId) {
+      return res.status(202).json({
+        message: 'Charge not yet available. Try again shortly.',
+        status: paymentIntent.status
+      });
+    }
+
+    const charge = await stripe.charges.retrieve(chargeId);
+    const balanceTransaction = await stripe.balanceTransactions.retrieve(
+      charge.balance_transaction
+    );
+
+    const response = {
+      status: 'success',
+      message: 'Payment successful and transaction details retrieved.',
+      songId: session.metadata.songId,
+      album: session.metadata.album,
+      paymentIntentId: paymentIntent.id,
+      receiptUrl: charge.receipt_url,
+      customerFacingAmount: (paymentIntent.amount / 100).toFixed(2),
+      customerFacingCurrency: paymentIntent.currency.toUpperCase(),
+      amountReceived: (paymentIntent.amount_received / 100).toFixed(2),
+      paymentStatus: paymentIntent.status,
+      paymentMethodType: paymentIntent.payment_method_types[0] || null,
+      receiptEmail: paymentIntent.receipt_email,
+      createdTimestamp: paymentIntent.created,
+      createdDateTime: formatUnixTimestamp(paymentIntent.created),
+      latestChargeId: paymentIntent.latest_charge,
+      description: paymentIntent.description,
+      customer: paymentIntent.customer,
+      captureMethod: paymentIntent.capture_method,
+
+      balanceTransactionId: balanceTransaction.id,
+      processedAmount: (balanceTransaction.amount / 100).toFixed(2),
+      processedCurrency: balanceTransaction.currency.toUpperCase(),
+      netAmount: (balanceTransaction.net / 100).toFixed(2),
+      feeAmount: (balanceTransaction.fee / 100).toFixed(2),
+      feeCurrency:
+        balanceTransaction.fee_details[0]?.currency?.toUpperCase() || null,
+      exchangeRate: balanceTransaction.exchange_rate,
+      originalCurrency: balanceTransaction.exchange_rate
+        ? paymentIntent.currency.toUpperCase()
+        : balanceTransaction.currency.toUpperCase(),
+      convertedCurrency: balanceTransaction.currency.toUpperCase(),
+      balanceType: balanceTransaction.balance_type,
+      availableOnTimestamp: balanceTransaction.available_on,
+      availableOnDateTime: formatUnixTimestamp(balanceTransaction.available_on),
+      transactionCreatedTimestamp: balanceTransaction.created,
+      transactionCreatedDateTime: formatUnixTimestamp(
+        balanceTransaction.created
+      ),
+      reportingCategory: balanceTransaction.reporting_category,
+      transactionStatus: balanceTransaction.status,
+      transactionType: balanceTransaction.type,
+      feeDetails: balanceTransaction.fee_details,
+      rawStripeData: {
+        balanceTransaction,
+        paymentIntent
+      }
+    };
+
+    res.status(200).json(response);
+  } catch (err) {
+    console.error('Failed to retrieve session:', err);
+    res.status(500).json({ error: 'Failed to get session info' });
+  }
+});
+
+router.post('/donation', async (req, res) => {
+  const { amount } = req.body;
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: 'usd',
+      description: 'ODG Music Donation'
+    });
+
+    res.send({ clientSecret: paymentIntent.client_secret });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Payment initiation failed' });
+  }
+});
+
 router.post('/onboard-artist', async (req, res) => {
   try {
     const { email, userId } = req.body; // You can use req.user if logged in
@@ -151,78 +247,6 @@ router.post('/onboard-artist', async (req, res) => {
   } catch (err) {
     console.error('Stripe onboarding error:', err.message);
     res.status(500).json({ error: 'Failed to initiate Stripe onboarding' });
-  }
-});
-
-router.get('/stripe/session/:id', async (req, res) => {
-  try {
-    const session = await stripe.checkout.sessions.retrieve(req.params.id, {
-      expand: ['payment_intent'] // no need to expand 'charges' anymore
-    });
-
-    const paymentIntent = session.payment_intent;
-    const chargeId = paymentIntent.latest_charge;
-
-    if (!chargeId) {
-      return res.status(202).json({
-        message: 'Charge not yet available. Try again shortly.',
-        status: paymentIntent.status
-      });
-    }
-
-    const charge = await stripe.charges.retrieve(chargeId);
-    const receiptUrl = charge.receipt_url;
-
-    const balanceTransaction = await stripe.balanceTransactions.retrieve(
-      charge.balance_transaction
-    );
-
-    res.status(200).json({
-      songId: session.metadata.songId,
-      album: session.metadata.album,
-      receiptUrl,
-      paymentInfo: {
-        amount_received: paymentIntent.amount_received / 100,
-        currency: paymentIntent.currency,
-        payment_intent_id: paymentIntent.id,
-        charge_id: charge.id,
-        stripe_fee: balanceTransaction.fee / 100,
-        net_amount: balanceTransaction.net / 100,
-        total_amount: balanceTransaction.amount / 100,
-        status: paymentIntent.status,
-        created_at: new Date(paymentIntent.created * 1000),
-        exchange_rate: balanceTransaction.exchange_rate,
-        card_last4: charge.payment_method_details?.card?.last4,
-        card_brand: charge.payment_method_details?.card?.brand,
-        country: charge.billing_details?.address?.country || 'N/A',
-        buyer_paid_usd: session.amount_total / 100, // amount charged in Checkout
-        platform_currency: balanceTransaction.currency.toUpperCase(), // e.g., CAD
-        platform_received: balanceTransaction.amount / 100, // in CAD
-        stripe_fee: balanceTransaction.fee / 100,
-        net_amount: balanceTransaction.net / 100
-      }
-    });
-  } catch (err) {
-    console.error('Failed to retrieve session:', err);
-    res.status(500).json({ error: 'Failed to get session info' });
-  }
-});
-
-
-router.post("/donation", async (req, res) => {
-  const { amount } = req.body;
-
-  try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency: "usd",
-      description: "ODG Music Donation",
-    });
-
-    res.send({ clientSecret: paymentIntent.client_secret });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Payment initiation failed" });
   }
 });
 

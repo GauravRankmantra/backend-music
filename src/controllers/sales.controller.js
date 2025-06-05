@@ -1,4 +1,5 @@
-const Sales = require('../models/sales.model');
+const Sales = require('../models/sales.model.js');
+const User = require('../models/user.model.js');
 
 module.exports.createSale = async (req, res) => {
   try {
@@ -6,26 +7,46 @@ module.exports.createSale = async (req, res) => {
       songId,
       buyerId,
       sellerId,
-      amountPaid,
-      platformShare,
+      paymentIntentId,
+      customerFacingAmount,
+      customerFacingCurrency,
+      amountReceived,
+      paymentStatus,
+      paymentMethodType,
+      receiptEmail,
+      createdTimestamp,
+      createdDateTime,
+      latestChargeId,
+      description,
+      customer,
+      captureMethod,
+      balanceTransactionId,
+      processedAmount,
+      processedCurrency,
+      netAmount,
+      feeAmount,
+      feeCurrency,
+      exchangeRate,
+      originalCurrency,
+      convertedCurrency,
+      balanceType,
+      availableOnTimestamp,
+      availableOnDateTime,
+      transactionCreatedTimestamp,
+      transactionCreatedDateTime,
+      reportingCategory,
+      transactionStatus,
+      transactionType,
+      feeDetails,
       sellerEarning,
       adminEarning,
-      amountReceved, // Net from Stripe
-      currency,
-      stripeChargeId,
-      stripeId,
       receiptUrl
     } = req.body;
 
+    console.log('body ->', req.body);
+
     // Validate required fields
-    if (
-      !songId ||
-      !buyerId ||
-      !sellerId ||
-      !amountPaid ||
-      !amountReceved ||
-      !stripeChargeId
-    ) {
+    if (!songId || !buyerId || !sellerId || !amountReceived) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -50,18 +71,44 @@ module.exports.createSale = async (req, res) => {
       songId,
       buyerId,
       sellerId,
-      amountPaid,
-      platformShare,
-      amountReceved,
+      paymentIntentId,
+      customerFacingAmount,
+      customerFacingCurrency,
+      amountReceived,
+      paymentStatus,
+      paymentMethodType,
+      receiptEmail,
+      createdTimestamp,
+      createdDateTime,
+      latestChargeId,
+      description,
+      customer,
+      captureMethod,
+      balanceTransactionId,
+      processedAmount,
+      processedCurrency,
+      netAmount,
+      feeAmount,
+      feeCurrency,
+      exchangeRate,
+      originalCurrency,
+      convertedCurrency,
+      balanceType,
+      availableOnTimestamp,
+      availableOnDateTime,
+      transactionCreatedTimestamp,
+      transactionCreatedDateTime,
+      reportingCategory,
+      transactionStatus,
+      transactionType,
+      feeDetails,
       sellerEarning,
       adminEarning,
-      receiptUrl,
-      currency: currency || 'USD',
-      stripeChargeId,
-      stripeId
+      receiptUrl
     });
 
     res.status(201).json({ message: 'Sale recorded successfully', sale });
+    // res.status(201).json({ message: 'Sale recorded successfully' });
   } catch (err) {
     console.error('Error creating sale:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -71,10 +118,8 @@ module.exports.createSale = async (req, res) => {
 // Get all sales
 module.exports.getAllSales = async (req, res) => {
   try {
-    const { status } = req.query;
-
-    const filter = status ? { payoutStatus: status } : {};
-    const sales = await Sales.find(filter)
+    const sales = await Sales.find()
+      .sort({ createdAt: -1 })
       .populate({
         path: 'songId',
         select: '_id title'
@@ -137,5 +182,21 @@ module.exports.updateSale = async (req, res) => {
   } catch (err) {
     console.error('Error updating payout status:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+module.exports.getSaleByUserId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sale = await Sales.find({ buyerId: id }).populate('songId');
+
+    if (!sale) {
+      return res.status(404).json({ error: 'Sale not found' });
+    }
+
+    res.status(200).json(sale);
+  } catch (err) {
+    console.error('Error fetching sale:', err);
+    res.status(500).json({ error: 'Failed to retrieve sale' });
   }
 };
