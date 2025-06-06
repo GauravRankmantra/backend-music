@@ -1,27 +1,22 @@
-// routes/songMail.js (or wherever your router is defined)
+
 const express = require('express');
 const router = express.Router();
-// Assuming subscriber.model.js exports the Mongoose model
 const Subscriber = require('../../../models/subscriber.model.js'); 
 
 const sgMail = require('@sendgrid/mail');
-// Ensure dotenv is loaded in your main app.js or server.js file BEFORE this router
-// Or add require('dotenv').config(); here if this router is an entry point
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// Define a general unsubscribe base URL (adjust to your actual unsubscribe route)
+
 const BASE_UNSUBSCRIBE_URL = 'http://localhost:5000/api/v1/unsubscribe/';
 
 router.post('/', async (req, res) => {
-  const { songName, coverImage, listenLink } = req.body; // Expecting listenLink from frontend
+  const { songName, coverImage, listenLink } = req.body; 
 
   if (!songName || !coverImage) {
     return res.status(400).json({ success: false, message: 'Missing songName or coverImage in request body.' });
   }
-  // Ensure listenLink is provided or has a default
-  const actualListenLink = listenLink || '#';
 
- 
+  const actualListenLink = listenLink || '#';
 
   try {
     const subscribers = await Subscriber.find();
@@ -31,26 +26,25 @@ router.post('/', async (req, res) => {
       return res.status(200).json({ success: true, message: 'No active subscribers found to send email to.' });
     }
 
-    // Prepare personalizations for SendGrid
+
     const personalizations = subscribers.map(subscriber => ({
-      to: [{ email: subscriber.email }], // Each recipient needs an array of objects
+      to: [{ email: subscriber.email }], 
       dynamicTemplateData: {
         subscriberName: subscriber.name || 'Valued Subscriber',
         songName: songName,
         coverImage: coverImage,
         listenLink: actualListenLink,
-        unsubscribeLink: `${BASE_UNSUBSCRIBE_URL}${subscriber._id}`, // Generate unique unsubscribe link
+        unsubscribeLink: `${BASE_UNSUBSCRIBE_URL}${subscriber._id}`, 
         currentYear: new Date().getFullYear(),
       },
     }));
 
     const msg = {
-      from: process.env.SENDGRID_SENDER_EMAIL, // MUST be a verified sender in SendGrid
+      from: process.env.SENDGRID_SENDER_EMAIL,
       templateId: process.env.SENDGRID_TEMPLATE_ID,
       personalizations: personalizations, 
     };
 
-    // Send the email (one API call for all personalized emails)
     await sgMail.send(msg);
 
     console.log(`Successfully sent email notification for "${songName}" to ${subscribers.length} subscribers.`);
@@ -58,14 +52,10 @@ router.post('/', async (req, res) => {
       success: true,
       message: `Email notification for "${songName}" sent to ${subscribers.length} subscribers.`,
       sentCount: subscribers.length,
-      // SendGrid's response doesn't give per-email success/failure directly for bulk sends
-      // You'd rely on SendGrid's activity feed and webhooks for that.
     });
 
   } catch (error) {
     console.error('Error sending emails with SendGrid:', error);
-
-    // Provide more detailed error response from SendGrid
     if (error.response && error.response.body) {
       console.error('SendGrid API Error Response:', error.response.body);
       return res.status(500).json({

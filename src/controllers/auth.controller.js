@@ -50,34 +50,32 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
   if (!user2) {
     return res.status(404).json({ message: 'User not found' });
   }
-
-  // Now fetch liked songs from Likes collection
-  const likes = await Like.find({ likedBy: user2._id }).select('song');
-  const likedSongs = likes.map((like) => like.song); // Array of song IDs
-
-  // Attach liked songs to user object (optional)
-  const user = {
-    ...user2.toObject(),
-    likedSongs
-  };
-
-  if (!user) {
+  if (!user2.password) {
     return res.status(401).json({
       success: false,
-      message: 'Invalid email or password'
+      message:
+        'Authentication required. Please continue with Google and set up your password'
     });
   }
 
-  // Validate password
   const isPasswordValid = await user2.validatePassword(password);
+  // shauryaiiitd@gmail.com
+
   if (!isPasswordValid) {
     return res.status(401).json({
       success: false,
       message: 'Invalid  email or password'
     });
   }
+  const likes = await Like.find({ likedBy: user2._id }).select('song');
 
-  // Generate Access & Refresh Tokens
+  const user = user2.toObject();
+
+  if (likes.length > 0) {
+    const likedSongs = likes.map((like) => like.song);
+    user.likedSongs = likedSongs;
+  }
+
   const { accessToken, refreshToken } = await generateTokens(user2);
 
   // res.setHeader('Authorization', `Bearer ${accessToken}`);
@@ -86,14 +84,14 @@ module.exports.logIn = asyncHandler(async (req, res, next) => {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000
+    maxAge: 7 * 24 * 60 * 60 * 1000
   });
 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    maxAge: 12 * 24 * 60 * 60 * 1000
   });
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
