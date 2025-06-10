@@ -128,7 +128,9 @@ module.exports.getWeeklyActivityStats = asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const user = await User.findById(userId).select('activityStats').lean();
+    const user = await User.findById(userId)
+      .select('activityStats')
+      .lean();
 
     if (!user) {
       return res
@@ -137,25 +139,39 @@ module.exports.getWeeklyActivityStats = asyncHandler(async (req, res) => {
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to midnight
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 6); // 6 days before today (total 7 including today)
+    today.setHours(0, 0, 0, 0);
+    const fiveDaysAgo = new Date(today);
+    fiveDaysAgo.setDate(today.getDate() - 4);
 
-    const weeklyStats = (user.activityStats || []).filter((stat) => {
-      const statDate = new Date(stat.date);
-      return statDate >= sevenDaysAgo;
+    const rawStats = user.activityStats || [];
+    const sumsByDate = rawStats.reduce((acc, { date, minutesSpent }) => {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      const key = d.toISOString();
+      acc[key] = (acc[key] || 0) + minutesSpent;
+      return acc;
+    }, {});
+
+    const weeklyStats = Array.from({ length: 5 }).map((_, i) => {
+      const d = new Date(fiveDaysAgo);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString();
+      return {
+        date: key,
+        minutesSpent: sumsByDate[key] || 0,
+      };
     });
 
     res.status(200).json({
       success: true,
-      data: weeklyStats
+      data: weeklyStats,
     });
   } catch (error) {
     console.error('Error in getWeeklyActivityStats:', error);
     res.status(500).json({
       success: false,
       message: 'Internal Server Error',
-      error: error.message
+      error: error.message,
     });
   }
 });
