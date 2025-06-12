@@ -194,7 +194,7 @@ module.exports.addActivity = asyncHandler(async (req, res) => {
 
     const midnight = new Date();
     midnight.setHours(0, 0, 0, 0);
-
+//user dashboard changes 
     if (existingStat) {
       existingStat.minutesSpent += minutesSpent;
     } else {
