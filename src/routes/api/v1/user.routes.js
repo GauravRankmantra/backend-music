@@ -20,6 +20,7 @@ router.post(
 );
 
 router.post('/changepass', auth, userController.changePassword);
+router.get('/checkPassword', auth, userController.checkPassword);
 router.put(
   '/update/:id',
   upload.single('coverImage'),

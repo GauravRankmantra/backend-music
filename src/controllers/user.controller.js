@@ -359,37 +359,69 @@ module.exports.getOtp = asyncHandler(async (req, res) => {
     });
   }
 });
+module.exports.checkPassword = asyncHandler(async (req, res) => {
+  if (!req.user || !req.user._id) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
 
-module.exports.changePassword = asyncHandler(async (req, res, next) => {
-  const { newPassword, oldPassword } = req.body;
+  const user = await User.findById(req.user._id).select('password');
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
 
+  // For MongoDB, password may be undefined, null, or empty string if not set
+  const hasPassword = !!(user.password && typeof user.password === 'string' && user.password.trim().length > 0);
+
+  return res.status(200).json({ success: true, hasPassword });
+});
+module.exports.changePassword = asyncHandler(async (req, res) => {
+  const { newPassword, oldPassword, confirmPassword } = req.body;
   const user = req.user;
 
   const validatedUser = await User.findById(user._id);
-  if (!validateUser)
-    return res.status(404).json({ message: 'unauthorize access' });
-
-  const isPasswordValid = await validatedUser.validatePassword(oldPassword);
-
-  if (!isPasswordValid) {
-    return res.status(400).send({
-      success: false,
-      message: 'Password is not correct'
-    });
+  if (!validatedUser) {
+    return res.status(404).json({ message: 'Unauthorized access' });
   }
-  user.password = newPassword;
-  const data = await user.save({ validateBeforeSave: false });
-  if (data) {
-    return res.status(200).send({
+
+  // User ALREADY has a password: require oldPassword and newPassword
+  if (validatedUser.password) {
+    if (!oldPassword || typeof oldPassword !== 'string') {
+      return res.status(400).json({ message: 'Old password is required' });
+    }
+    if (!newPassword) {
+      return res.status(400).json({ message: 'New password is required' });
+    }
+    if (newPassword === oldPassword) {
+      return res.status(400).json({ message: 'New password must be different from old password' });
+    }
+    const isPasswordValid = await validatedUser.validatePassword(oldPassword);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Old password is incorrect' });
+    }
+    validatedUser.password = newPassword;
+    await validatedUser.save({ validateBeforeSave: false });
+    return res.status(200).json({
       success: true,
-      message: 'Password changed succefully'
-    });
-  } else {
-    return res.status(500).send({
-      success: false,
-      message: 'Error while updating password'
+      message: 'Password changed successfully'
     });
   }
+
+  // User does NOT have a password: require newPassword and confirmPassword, do NOT allow oldPassword
+  if (oldPassword) {
+    return res.status(400).json({ message: 'No old password exists, do not provide oldPassword' });
+  }
+  if (!newPassword || !confirmPassword) {
+    return res.status(400).json({ message: 'Both new password and confirm password are required' });
+  }
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ message: 'Passwords do not match' });
+  }
+  validatedUser.password = newPassword;
+  await validatedUser.save({ validateBeforeSave: false });
+  return res.status(200).json({
+    success: true,
+    message: 'Password created successfully'
+  });
 });
 module.exports.updateUser = asyncHandler(async (req, res) => {
   const id = req.params.id;
