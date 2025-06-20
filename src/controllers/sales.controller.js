@@ -43,7 +43,7 @@ module.exports.createSale = async (req, res) => {
       receiptUrl
     } = req.body;
 
-    console.log('body ->', req.body);
+    
 
     // Validate required fields
     if (!songId || !buyerId || !sellerId || !amountReceived) {

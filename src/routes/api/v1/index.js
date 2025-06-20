@@ -30,6 +30,7 @@ const donationRouter = require('./donation.router.js');
 const sponsorRouter = require('./sponsor.router.js');
 const subscriberRouter = require('./subscriber.router.js');
 const songMailRouter = require('./songMail.router.js')
+const squarePaymentRouter = require('./squarePayment.router.js')
 
 router.use('/user', userRouter);
 router.use('/userDashbord', userDashbordRouter);
@@ -59,5 +60,6 @@ router.use('/sponsor', sponsorRouter);
 router.use('/donation', donationRouter);
 router.use('/subscribe', subscriberRouter);
 router.use('/songMail',songMailRouter)
+router.use('/payment',squarePaymentRouter)
 
 module.exports = router;
