@@ -844,6 +844,7 @@ module.exports.updateSong = asyncHandler(async (req, res) => {
   const { title, genre, isPublished } = req.body;
 
   const file = req.file;
+
   let coverImageUrl = '';
   if (file) {
     const coverImagePath = file.path;
@@ -863,7 +864,7 @@ module.exports.updateSong = asyncHandler(async (req, res) => {
   if (!song)
     return res.status(404).json({ success: false, message: 'No song found' });
   if (user.role == 'admin' || userId.equals(song.artist)) {
-    if (coverImageUrl != '') song.coverImageUrl = coverImageUrl;
+    if (coverImageUrl != '') song.coverImage = coverImageUrl;
     if (title) song.title = title;
     if (genre) song.genre = genre;
     if (typeof isPublished !== 'undefined') song.isPublished = isPublished;
