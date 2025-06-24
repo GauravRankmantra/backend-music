@@ -17,12 +17,11 @@ module.exports.auth = asyncHandler(async (req, res, next) => {
     const { _id } = await jwt.verify(accessToken, process.env.JWT_SECRET_KEY);
 
     const user = await User.findById(_id).select('-password -refreshToken');
-
-    if (!user) {
-      const error = new Error('Token is not valid');
-      error.statusCode = 404;
-      throw error;
-    }
+  if (!user) {
+            const error = new Error('Token is not valid');
+            error.statusCode = 404;
+            throw error;
+          }
     req.user = user;
     next();
   } catch (error) {

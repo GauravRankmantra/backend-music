@@ -50,11 +50,15 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
       return res.status(400).json({ message: 'Email already exists' });
     }
   }
-  const userAvatar = files?.avatar || '';
-  const userCoverImage = files?.coverImage || '';
 
-  // const avatar = await uploadFile(userAvatar[0]?.path);
-  const coverImage = await uploadFile(userCoverImage[0]?.path || '');
+  let coverImageUrl = ''; // Initialize as empty string
+
+  // Check if files exist and has coverImage before attempting to upload
+  if (files && files.coverImage && files.coverImage[0]?.path) {
+    const uploadedCoverImage = await uploadFile(files.coverImage[0].path);
+    coverImageUrl = uploadedCoverImage?.url || '';
+  }
+
   try {
     const user = new User({
       email,
@@ -66,9 +70,10 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
       isVerified,
       popularity,
       admin,
-      avatar:'',
-      coverImage: coverImage?.url || ''
+      avatar: '', // Assuming avatar is handled elsewhere or intentionally left empty
+      coverImage: coverImageUrl // Assign the determined coverImage URL
     });
+
     if (!user) return res.status(500).json({ message: 'user creation failed' });
 
     await user.save();
@@ -94,6 +99,8 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
     }
   }
 });
+
+
 module.exports.newUsers = asyncHandler(async (req, res, next) => {
   const today = new Date();
   const sevenDaysAgo = new Date(today);
@@ -641,7 +648,7 @@ module.exports.verifyOtp = asyncHandler(async (req, res) => {
     return res
       .status(404)
       .json({ success: false, message: 'Invalid OTP or OTP expired' });
-  validateUser.password = newpassword;
+  validateUser.password = newPassword;
   validateUser.otp = undefined;
   validateUser.otpExpires = undefined;
   await validateUser.save();
