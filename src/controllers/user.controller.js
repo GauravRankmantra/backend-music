@@ -100,7 +100,6 @@ module.exports.registerUser = asyncHandler(async (req, res, next) => {
   }
 });
 
-
 module.exports.newUsers = asyncHandler(async (req, res, next) => {
   const today = new Date();
   const sevenDaysAgo = new Date(today);
@@ -168,12 +167,10 @@ module.exports.addHistory = asyncHandler(async (req, res) => {
   // ======= Update topGenre =======
   const genreId = song.genre?.toString();
 
-
   if (genreId) {
     const existingGenre = user.topGenre?.find(
       (entry) => entry.genre?.toString() === genreId
     );
-
 
     if (existingGenre) {
       existingGenre.plays = (existingGenre.plays || 0) + 1;
@@ -280,7 +277,6 @@ module.exports.getHistory = asyncHandler(async (req, res) => {
 });
 module.exports.checkEmail = asyncHandler(async (req, res) => {
   const { email } = req.body;
- 
 
   if (!email) {
     return res
@@ -333,7 +329,7 @@ module.exports.getOtp = asyncHandler(async (req, res) => {
           <p>Use the following OTP to complete your request:</p>
           <h3 style="background: #f4f4f4; padding: 10px; display: inline-block; letter-spacing: 2px;">${otp}</h3>
           <p>This OTP will expire in <strong>2 minutes</strong>.</p>
-          <p>If you didn’t request this, you can safely ignore this email.</p>
+          <p>If you didn't request this, you can safely ignore this email.</p>
           <hr style="margin: 30px 0;">
           <small>ODG Music Team | ${process.env.EMAIL_USER}</small>
         </div>
@@ -350,7 +346,6 @@ module.exports.getOtp = asyncHandler(async (req, res) => {
           error: error.message
         });
       }
-
 
       return res.status(200).json({
         success: true,
@@ -377,7 +372,11 @@ module.exports.checkPassword = asyncHandler(async (req, res) => {
   }
 
   // For MongoDB, password may be undefined, null, or empty string if not set
-  const hasPassword = !!(user.password && typeof user.password === 'string' && user.password.trim().length > 0);
+  const hasPassword = !!(
+    user.password &&
+    typeof user.password === 'string' &&
+    user.password.trim().length > 0
+  );
 
   return res.status(200).json({ success: true, hasPassword });
 });
@@ -399,7 +398,9 @@ module.exports.changePassword = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: 'New password is required' });
     }
     if (newPassword === oldPassword) {
-      return res.status(400).json({ message: 'New password must be different from old password' });
+      return res
+        .status(400)
+        .json({ message: 'New password must be different from old password' });
     }
     const isPasswordValid = await validatedUser.validatePassword(oldPassword);
     if (!isPasswordValid) {
@@ -415,10 +416,14 @@ module.exports.changePassword = asyncHandler(async (req, res) => {
 
   // User does NOT have a password: require newPassword and confirmPassword, do NOT allow oldPassword
   if (oldPassword) {
-    return res.status(400).json({ message: 'No old password exists, do not provide oldPassword' });
+    return res
+      .status(400)
+      .json({ message: 'No old password exists, do not provide oldPassword' });
   }
   if (!newPassword || !confirmPassword) {
-    return res.status(400).json({ message: 'Both new password and confirm password are required' });
+    return res
+      .status(400)
+      .json({ message: 'Both new password and confirm password are required' });
   }
   if (newPassword !== confirmPassword) {
     return res.status(400).json({ message: 'Passwords do not match' });
@@ -430,6 +435,71 @@ module.exports.changePassword = asyncHandler(async (req, res) => {
     message: 'Password created successfully'
   });
 });
+
+module.exports.changeEmail = asyncHandler(async (req, res) => {
+  const { newEmail, password } = req.body;
+  const user = req.user;
+
+  // Validate required fields
+  if (!newEmail || typeof newEmail !== 'string') {
+    return res.status(400).json({ message: 'New email is required' });
+  }
+
+  if (!password || typeof password !== 'string') {
+    return res.status(400).json({ message: 'Password is required' });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(newEmail)) {
+    return res
+      .status(400)
+      .json({ message: 'Please provide a valid email address' });
+  }
+
+  // Get the current user from database
+  const validatedUser = await User.findById(user._id);
+  if (!validatedUser) {
+    return res.status(404).json({ message: 'Unauthorized access' });
+  }
+
+  // Check if user has a password set
+  if (!validatedUser.password) {
+    return res
+      .status(400)
+      .json({ message: 'No password set for this account' });
+  }
+
+  // Validate the current password
+  const isPasswordValid = await validatedUser.validatePassword(password);
+  if (!isPasswordValid) {
+    return res.status(400).json({ message: 'Password is incorrect' });
+  }
+
+  // Check if new email is different from current email
+  if (validatedUser.email.toLowerCase() === newEmail.toLowerCase()) {
+    return res
+      .status(400)
+      .json({ message: 'New email must be different from current email' });
+  }
+
+  // Check if the new email already exists
+  const existingUser = await User.findOne({ email: newEmail.toLowerCase() });
+
+  if (existingUser) {
+    return res.status(400).json({ message: 'Email already exists choose another email' });
+  }
+
+  // Update the email
+  validatedUser.email = newEmail.toLowerCase();
+  await validatedUser.save({ validateBeforeSave: false });
+
+  return res.status(200).json({
+    success: true,
+    message: 'Email changed successfully'
+  });
+});
+
 module.exports.updateUser = asyncHandler(async (req, res) => {
   const id = req.params.id;
 
@@ -592,8 +662,6 @@ module.exports.getPurchasedSong = asyncHandler(async (req, res) => {
         path: 'album',
         select: 'title coverImage'
       });
-
-
 
     return res.status(200).json({
       success: true,
