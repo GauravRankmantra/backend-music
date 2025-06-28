@@ -20,6 +20,7 @@ router.post(
 );
 
 router.post('/changepass', auth, userController.changePassword);
+router.post('/changeEmail', auth, userController.changeEmail);
 router.get('/checkPassword', auth, userController.checkPassword);
 router.put(
   '/update/:id',
